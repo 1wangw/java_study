@@ -1,0 +1,1939 @@
+Spring mvc 
+
+	1.helloworld:
+		1.加入jar包
+			<dependency>
+			    <groupId>org.springframework</groupId>
+			    <artifactId>spring-web</artifactId>
+			    <version>5.1.3.RELEASE</version>
+			</dependency>
+		  	
+			  	<!-- https://mvnrepository.com/artifact/org.springframework/spring-webmvc -->
+			<dependency>
+			    <groupId>org.springframework</groupId>
+			    <artifactId>spring-webmvc</artifactId>
+			    <version>5.1.3.RELEASE</version>
+			</dependency>
+			  	
+			  	<!-- https://mvnrepository.com/artifact/commons-logging/commons-logging -->
+			<dependency>
+			    <groupId>commons-logging</groupId>
+			    <artifactId>commons-logging</artifactId>
+			    <version>1.2</version>
+			</dependency>
+	  	
+		2.在web.xml中配置DispatcherServlet
+		
+			<!-- 配置DispatcherServlet -->
+			
+			<servlet>
+				<servlet-name>springDispatcherServlet</servlet-name>
+				<servlet-class>org.springframework.web.servlet.DispatcherServlet</servlet-class>
+				<!-- 配置DispatcherServlet的初始化参数 其作用是配置Springmvc配置文件的位置和名称 -->
+				<!-- 实际上也可以不通过contextConfigLocation 配置springmvc的配置文件 而使用默认的
+					默认的配置文件为:/WEB-INF/<servlet-name>-servlet.xml
+				 -->
+				<init-param>
+					<param-name>contextConfigLocation</param-name>
+					<param-value>classpath:springmvc.xml</param-value>
+				</init-param>
+				<!-- 这个Servlet是当前web应用启动的时候就创建而不是等到第一次请求的时候创建 -->
+				<load-on-startup>1</load-on-startup>
+			</servlet>
+		
+			<servlet-mapping>
+				<servlet-name>springDispatcherServlet</servlet-name>
+				<url-pattern>/</url-pattern>
+			</servlet-mapping>
+			
+				/*会覆盖其他servlets。无论任何请求都会执行该servlet。 
+				/不会覆盖其它servlet（它只会替换servlet容器中内置的静态资源和目录列表的默认servlet）。就是当请求没有匹配到一个更具体的URL时，会走默认servlet。对于*.jsp，由于servlet容器中内置了jspServlet，所以不会被/拦截。
+				--------------------- 
+				作者：Brent-CCNU 
+				来源：CSDN 
+				原文：https://blog.csdn.net/zitong_ccnu/article/details/53442494 
+		版权声明：本文为博主原创文章，转载请附上博文链接！
+
+		3.加入Springmvc配置文件
+			需要加入beans context mvc命名空间
+			
+					<!-- 配置自动扫描的包-->
+			<context:component-scan base-package="com.atguigu.springmvc.handlers"></context:component-scan>
+			
+			<!-- 配置视图解析器:如何把handler方法返回值解析为实际的物理视图 -->
+			<bean class="org.springframework.web.servlet.view.InternalResourceViewResolver">
+				<property name="prefix" value="/WEB-INF/views/"></property>
+				<property name="suffix" value=".jsp"></property>
+			</bean>
+		
+			
+		4.编写处理请求的处理器,并标识为处理器
+			
+			//这样它就是一个请求处理器
+			@Controller
+			public class HelloWorld {
+			
+				public HelloWorld() {
+					// TODO Auto-generated constructor stub
+				}
+				
+				/**
+				 * 1.使用@RequestMapping映射请求的url
+				 * 2.返回值会通过视图解析器解析为实际的物理视图,对于InternalResourceViewResolver视图解析器会做如下解析
+				 * 		prefix + ret + suffix 这样的方式得到实际的物理视图 然后做转发操作
+				 * @return
+				 */
+				@RequestMapping("/helloworld")
+				public String hello() {
+					
+					System.out.println( "Hello World");
+					return "success";
+				}
+			
+			}
+		
+		5.编写视图
+			创建对应的jsp文件	
+	
+	
+	
+	@RequestMapping注解:
+	
+		1.使用 @RequestMapping 映射请求
+		
+		/* @RequestMapping 除了修饰方法还可以修饰类
+		     Spring MVC 使用 @RequestMapping 注解为控制器指定可
+			 以处理哪些 URL 请求
+			
+			• 在控制器的类定义及方法定义处都可标注
+			@RequestMapping
+			– 类定义处：提供初步的请求映射信息。相对于 WEB 应用的根目录
+			– 方法处：提供进一步的细分映射信息。相对于类定义处的 URL。若
+			类定义处未标注 @RequestMapping，则方法处标记的 URL 相对于
+			WEB 应用的根目录
+			
+			• DispatcherServlet 截获请求后，就通过控制器上
+			@RequestMapping 提供的映射信息确定请求所对应的处理
+			方法。
+		
+				@RequestMapping("/springmvc")
+				@Controller
+				public class SpringMvcTest {
+		
+						private static final String SUCCESS = "success";
+			
+						public SpringMvcTest() {
+							// TODO Auto-generated constructor stub
+						}
+			
+			
+						 * 
+						 */
+						@RequestMapping("/testRequestMapping")
+						public String testRequestMapping() {
+							
+							System.out.println( "testRequest" );
+							
+							return SUCCESS;
+						}
+		
+					}
+				
+		2.映射请求参数、请求方法或请求头
+		
+			• @RequestMapping 除了可以使用请求 URL 映射请求外，
+			还可以使用请求方法、请求参数及请求头映射请求
+			
+			• @RequestMapping 的 value、method、params 及 heads
+			分别表示请求 URL、请求方法、请求参数及请求头的映射条
+			件，他们之间是与的关系，联合使用多个条件可让请求映射
+			更加精确化。
+			
+			• params 和 headers支持简单的表达式：
+			– param1: 表示请求必须包含名为 param1 的请求参数
+			– !param1: 表示请求不能包含名为 param1 的请求参数
+			– param1 != value1: 表示请求包含名为 param1 的请求参数，但其值
+			不能为 value1
+			– {“param1=value1”, “param2”}: 请求必须包含名为 param1 和param2
+			的两个请求参数，且 param1 参数的值必须为 value1
+			
+			1).
+				/**
+			 * 常用:使用method 属性指定请求方式
+			 * @return
+			 */
+			@RequestMapping(value="/testMethod" , method=RequestMethod.POST )
+			public String testMethod( ) {
+				
+				System.out.println( "testMethod ");
+				
+				return SUCCESS;
+			}
+			
+			2).
+			
+			/**
+			 * 了解:使用params和headers来更加精确的映射请求,params和headers支持简单的表达式
+			 * 
+			 * 
+			 * @return
+			 */
+			
+			@RequestMapping(value="testParamsAndHeaders",params={"username" , "age!=10"}
+			,headers={"Accept-Language=en-us,zh;q=0.9"})
+			public String testParamsAndHeaders() {
+				
+				System.out.println( "testParamsAndHeaders" );
+				return SUCCESS;
+			}
+		
+	  3.使用 @RequestMapping 映射请求	
+		了解的知识点:
+		Ant 风格资源地址支持 3 种匹配符：
+			– ?：匹配文件名中的一个字符
+			– *：匹配文件名中的任意字符
+			– **：** 匹配多层路径
+			
+		@RequestMapping 还支持 Ant 风格的 URL：
+			– /user/*/createUser: 匹配
+			/user/aaa/createUser、/user/bbb/createUser 等 URL
+			– /user/**/createUser: 匹配
+			/user/createUser、/user/aaa/bbb/createUser 等 URL
+			– /user/createUser??: 匹配
+			/user/createUseraa、/user/createUserbb 等
+			
+		
+				@RequestMapping(value="/testAntPath/*/abc")
+				public String testAntPath() {
+					
+					System.out.println( "testAntPath" );
+					return SUCCESS;
+				}
+	
+	@PathVariable 映射 URL 绑定的占位符
+	
+		• 带占位符的 URL 是 Spring3.0 新增的功能，该功能在
+			
+			SpringMVC 向 REST 目标挺进发展过程中具有里程碑的
+			
+		意义
+		
+			• 通过 @PathVariable 可以将 URL 中占位符参数绑定到控
+			制器处理方法的入参中：URL 中的 {xxx} 占位符可以通过
+			@PathVariable("xxx") 绑定到操作方法的入参中。
+				
+				
+			@RequestMapping("testPathVariable/{id}")
+			public String testPathVariable(@PathVariable(value="id") String id) {
+				
+				System.out.println( "testPathVariable  id : " + id );
+				return SUCCESS;
+			}
+	
+	
+	REST:
+	
+		• REST：即 Representational State Transfer。（资源）表现层状态转化。是目前
+		最流行的一种互联网软件架构。它结构清晰、符合标准、易于理解、扩展方便，
+		所以正得到越来越多网站的采用
+		
+		• 资源（Resources）：网络上的一个实体，或者说是网络上的一个具体信息。它
+		可以是一段文本、一张图片、一首歌曲、一种服务，总之就是一个具体的存在。
+		可以用一个URI（统一资源定位符）指向它，每种资源对应一个特定的 URI 。要
+		获取这个资源，访问它的URI就可以，因此 URI 即为每一个资源的独一无二的识
+		别符。
+		
+		• 表现层（Representation）：把资源具体呈现出来的形式，叫做它的表现层
+		（Representation）。比如，文本可以用 txt 格式表现，也可以用 HTML 格
+		式、XML 格式、JSON 格式表现，甚至可以采用二进制格式。
+		
+		• 状态转化（State Transfer）：每发出一个请求，就代表了客户端和服务器的一
+		次交互过程。HTTP协议，是一个无状态协议，即所有的状态都保存在服务器
+		端。因此，如果客户端想要操作服务器，必须通过某种手段，让服务器端发生“
+		状态转化”（State Transfer）。而这种转化是建立在表现层之上的，所以就是 “
+		表现层状态转化”。具体说，就是 HTTP 协议里面，四个表示操作方式的动
+		词：GET、POST、PUT、DELETE。它们分别对应四种基本操作：GET 用来获
+		取资源，POST 用来新建资源，PUT 用来更新资源，DELETE 用来删除资源。
+	
+		
+		• 示例：
+		– /order/1 HTTP GET ：得到 id = 1 的 order   
+		– /order/1 HTTP DELETE：删除 id = 1的 order   
+		– /order/1 HTTP PUT：更新id = 1的 order   
+		– /order HTTP POST：新增 order
+		
+		• HiddenHttpMethodFilter：浏览器 form 表单只支持 GET
+		与 POST 请求，而DELETE、PUT 等 method 并不支
+		持，Spring3.0 添加了一个过滤器，可以将这些请求转换
+		为标准的 http 方法，使得支持 GET、POST、PUT 与
+		DELETE 请求。
+		
+		@PathVariable 绑定 URL 占位符到入参
+		• 带占位符的 URL 是 Spring3.0 新增的功能，该功能在
+		SpringMVC 向 REST 目标挺进发展过程中具有里程碑的
+		
+		意义:
+		
+		• 通过 @PathVariable 可以将 URL 中占位符参数绑定到控
+		制器处理方法的入参中：URL 中的 {xxx} 占位符可以通过
+		@PathVariable("xxx") 绑定到操作方法的入参中。
+	
+		解决页面报错JSPs only permit GET POST or HEAD
+		设置  isErrorPage="true"
+		
+	     /**
+		 * Rest 风格的 URL. 以 CRUD 为例: 新增: /order POST 修改: /order/1 PUT update?id=1 获取:
+		 * /order/1 GET get?id=1 删除: /order/1 DELETE delete?id=1
+		 * 
+		 * 如何发送 PUT 请求和 DELETE 请求呢 ? 1. 需要配置 HiddenHttpMethodFilter 2. 需要发送 POST 请求
+		 * 3. 需要在发送 POST 请求时携带一个 name="_method" 的隐藏域, 值为 DELETE 或 PUT
+		 * 
+		 * 在 SpringMVC 的目标方法中如何得到 id 呢? 使用 @PathVariable 注解
+		 * 
+		 */
+		 
+		 
+		 	/*
+	 * Reset风格的url:
+	 * 	以crud为例子：
+	 * 新增:/order post
+	 * 修改:/order/1 put  update?id=1
+	 * 获取:/order/1 GET  get?id=1
+	 * 删除:order/1 Delete delete?id=1
+	 * 
+	 * 如何发送PUT请求和DELETE请求呢?
+	 * 1.需要配置
+	 * 2.需要发送post请求
+	 * 3.需要在发送post请求时携带一个name=_method隐藏域值为DELETE或PUT
+	 * 
+	 *  在springmvc中目标方法中如何得到id呢?
+	 * 使用 @PathVariable注解获取url中的占位符
+	 
+	 
+	 
+	 * 
+	 */
+	 
+	 	<!-- 配置HiddenHttpMethodFilter:作用可以把post请求转换为 PUT 或 DELETE请求  -->
+	<filter>
+		<filter-name>HiddenHttpMethodFilter</filter-name>
+		<filter-class>org.springframework.web.filter.HiddenHttpMethodFilter</filter-class>
+	</filter>
+	
+	<filter-mapping>
+		<filter-name>HiddenHttpMethodFilter</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+	 
+	 
+			 
+		@RequestMapping( value = "/testRest/{id}" , method=RequestMethod.GET)
+		public String testRestGet( @PathVariable("id") int id ) {
+			
+			System.out.println(  "testRestGet :" + id);
+			return SUCCESS;
+		}
+		@RequestMapping( value = "/testRest/{id}" , method=RequestMethod.PUT)
+		public String testRestPut( @PathVariable("id") int id  ) {
+			
+			System.out.println(  "testRestPut " + id);
+			return SUCCESS;
+		}
+		@RequestMapping( value = "/testRest/{id}" , method=RequestMethod.DELETE)
+		public String testRestDelete( @PathVariable("id") int id ) {
+			
+			System.out.println(  "testRestDelete :" + id);
+			return SUCCESS;
+		}
+		@RequestMapping( value = "/testRest/{id}" , method=RequestMethod.POST)
+		public String testRestPost( @PathVariable("id") int id ) {
+			
+			System.out.println(  "testRestPost :" + id);
+			return SUCCESS;
+		}
+	
+		<br>
+		<br>
+			<form action="springmvc/testRest/1" method="post">
+				<input type="hidden" name="_method" value="DELETE">
+				<input type="submit" value="测试test reset DELETE">
+			</form>
+		<br>
+		<br>
+			<form action="springmvc/testRest/1" method="post">
+				<input type="hidden" name="_method" value="PUT">
+				<input type="submit" value="测试test reset PUT">
+			</form>
+		<br>
+		<br>
+			<form action="springmvc/testRest/1" method="post">
+				<input type="submit" value="测试test reset Post">
+			</form>
+		<br>
+		<br>
+		
+			<a href="springmvc/testRest/1"> Test Rest get</a>
+		<br>
+		<br>
+		
+	请求处理方法签名
+		• Spring MVC 通过分析处理方法的签名，将 HTTP 请求信
+		息绑定到处理方法的相应人参中。
+		
+		• Spring MVC 对控制器处理方法签名的限制是很宽松的，
+		几乎可以按喜欢的任何方式对方法进行签名。
+		
+		• 必要时可以对方法及方法入参标注相应的注解（
+		@PathVariable
+		@RequestParam、@RequestHeader 等）、Spring
+		MVC 框架会将 HTTP 请求的信息绑定到相应的方法入参
+		中，并根据方法的返回值类型做出相应的后续处理。
+		
+		
+		使用 @RequestParam 绑定请求参数值
+			• 在处理方法入参处使用 @RequestParam 可以把请求参
+			数传递给请求方法
+			– value：参数名
+			– required：是否必须。默认为 true, 表示请求参数中必须包含对应
+			的参数，若不存在，将抛出异常
+			- defaultValue:请求参数的默认值
+		
+		<a href="springmvc/testRequestParam?username=atguigu&age=11">Test RequestParam</a>
+		 
+		@RequestMapping(value="/testRequestParam")
+		public String testRequestParam( User user ) {
+			
+			System.out.println( "testRequestParam username:" + user.getUsername() + ",age : " +  user.getAge()  );
+			return SUCCESS;
+		}
+		
+		@RequestMapping(value="/testRequestParam")
+		public String testRequestParam( String username , int age ) {
+			
+			System.out.println( "testRequestParam username:" + user.getUsername() + ",age : " +  user.getAge()  );
+			return SUCCESS;
+		}
+		
+		@RequestMapping(value="/testRequestParam")
+		public String testRequestParam( @RequestParam(value = "age") int age ,
+				@RequestParam( value = "username" ) String un ) {
+			
+			System.out.println( "testRequestParam username:" + un + ",age : " + age  );
+			return SUCCESS;
+		}
+		
+		@RequestMapping(value="/testRequestParam")
+		public String testRequestParam( @RequestParam(value = "age" ,required=false , defaultValue="0") Integer age ,
+				@RequestParam( value = "username" ) String un ) {
+			
+			System.out.println( "testRequestParam username:" + un + ",age : " + age  );
+			return SUCCESS;
+		}
+		
+	
+	使用 @RequestHeader 绑定请求报头的属性值
+		
+		• 请求头包含了若干个属性，服务器可据此获知客户端的信
+		息，通过 @RequestHeader 即可将请求头中的属性值绑
+		定到处理方法的入参中
+		
+		/**
+		          了解:
+			用法同@RequestParam
+			作用映射请求头信息 
+		*/
+		@RequestMapping("/testRequestHeader")
+		public String testRequestHeader(@RequestHeader(value="Accept-Language") String al) {
+			
+			System.out.println( "testRequestHeader " + al );
+			return SUCCESS;
+		}
+		
+	了解	
+	使用 @CookieValue 绑定请求中的 Cookie 值
+	• @CookieValue 可让处理方法入参绑定某个 Cookie 值	
+	
+		@RequestMapping("/testCookieValue")
+		public String testCookieValue( @CookieValue("JSESSIONID") String name) {
+			
+			System.out.println( "testCookieValue " + name );
+			
+			return SUCCESS;
+		}
+	
+	
+	使用 POJO 对象绑定请求参数值:
+		• Spring MVC 会按请求参数名和 POJO 属性名进行自动匹
+		配，自动为该对象填充属性值。支持级联属性。
+		如：dept.deptId、dept.address.tel 等	
+			
+		@RequestMapping("/testPojo")
+		public String testPojo( User user ) {
+			
+			System.out.println( "testPojo : " + user );
+			return SUCCESS;
+		}
+		
+		<form action="springmvc/testPojo" method="post">
+			username:<input type="text"  name="username">
+			<br>
+			password:<input type="password"  name="password">
+				<br>
+			email:<input type="text" name="email">  
+			<br>
+			age:<input type="text" name="age">  
+			<br>
+			
+			province:<input type="text" name="address.province">
+			<br>
+			
+			city:<input type="text" name="address.city">
+			
+			<input type="submit">
+	</form>
+		
+	this.city = new String(city.getBytes("iso-8859-1") , "utf-8");
+	
+	
+	
+	
+	使用 Servlet API 作为入参:
+	
+		MVC 的 Handler 方法可以接受
+		哪些 ServletAPI 类型的参数
+		
+		• HttpServletRequest
+		• HttpServletResponse
+		• HttpSession
+		• java.security.Principal
+		• Locale
+		• InputStream
+		• OutputStream
+		• Reader
+		• Writer
+		
+		@RequestMapping("/testServletAPI")
+	public void  testServletAPI(HttpServletRequest req, HttpServletResponse reps 
+			,HttpSession session
+			, Writer writer ) throws IOException {
+		
+		System.out.println( "testServletAPI " + req + ", " + reps + ", " +
+				session   );
+		 
+		writer.write("hello Springmvc");
+		return ;
+	}
+	
+		@RequestMapping("/testServletAPI")
+		public String testServletAPI(HttpServletRequest req, HttpServletResponse reps 
+			,HttpSession session
+			) {
+		
+		System.out.println( "testServletAPI " + req + ", " + reps + ", " +
+				session   );
+		 
+		return SUCCESS;
+	}
+	
+	
+	
+处理模型数据:
+	• Spring MVC 提供了以下几种途径输出模型数据：
+	
+	
+	– ModelAndView: 处理方法返回值类型为 ModelAndView
+		时, 方法体即可通过该对象添加模型数据
+		
+				/**
+			 * 
+			 * 目标方法的返回值可以是ModelAndView类型:
+			 * 其中可以包含视图和模型信息
+			 * 会将model设置到request中
+			 * 
+			 * springmvc会把ModelAndView的model中的数据放到request域对象中
+			 * @return
+			 */
+			@RequestMapping("/testModelAndView")
+			public ModelAndView testModelAndView() {
+				
+				String viewName = SUCCESS;
+				ModelAndView  modelAndView = new ModelAndView();
+				
+				//添加模型数据到ModelAndView 
+				modelAndView.addObject("time", new Date() );
+				modelAndView.setViewName( viewName );
+				return modelAndView;
+			}
+		
+	– Map 及 Model: 入参为   主要是传人Map类型
+		org.springframework.ui.Model、org.springframework.ui.
+		ModelMap 或 java.uti.Map 时，处理方法返回时，Map
+		中的数据会自动添加到模型中。
+		
+			/**
+				 * 目标方法可以添加Map类型参数(实际上也可以是Model类型或者ModelMap类型)
+				 * @param map
+				 * @return
+				 */
+				@RequestMapping("/testMap")
+				public String testMap(Map<String , Object > map) {
+					
+					map.put("names", Arrays.asList("Tom","Jerry" ,"Mike"));
+					
+					
+					return SUCCESS;
+				}
+	
+		
+	– @SessionAttributes: 将模型中的某个属性暂存到
+		HttpSession 中，以便多个请求之间可以共享这个属性
+		
+		• 若希望在多个请求之间共用某个模型属性数据，则可以在
+		控制器类上标注一个 @SessionAttributes, Spring MVC 
+		将在模型中对应的属性暂存到 HttpSession 中。
+		
+		• @SessionAttributes 除了可以通过属性名指定需要放到会
+		话中的属性外，还可以通过模型属性的对象类型指定哪些
+		模型属性需要放到会话中
+		
+		– @SessionAttributes(types=User.class) 会将隐含模型中所有类型
+		为 User.class 的属性添加到会话中。
+		– @SessionAttributes(value={“user1”, “user2”})
+		– @SessionAttributes(types={User.class, Dept.class})
+		– @SessionAttributes(value={“user1”, “user2”}, 
+		types={Dept.class})
+			
+			例子:
+			@SessionAttributes(value={"user"},types={String.class})
+			@RequestMapping("/springmvc")
+			@Controller
+			public class SpringMvcTest {
+			
+				private static final String SUCCESS = "success";
+				
+				
+				/**
+				 * 
+				 * • @SessionAttributes 除了可以通过属性名指定需要放到会
+					话中的属性外(实际上使用使用的是value属性值)，还可以通过模型属性的对象类型指定哪些
+					模型属性需要放到会话中(实际上使用使用的是type属性值,
+					
+					这个注解只能放到类的上面而不能放在方法的上面
+				
+				 * @param map
+				 * @return
+				 */
+				@RequestMapping("/testSessionAttributes")
+				
+				public String testSessionAttributes( Map<String , Object> map) {
+					
+					User user = new User("Tom", 15  ,"Tom@GuiGu.com" ,"123456" );
+					map.put("user", user); 
+					map.put("school" , "atguigu");
+					
+					return SUCCESS;
+				}
+				
+	
+			
+		
+	– @ModelAttribute: 方法入参标注该注解后, 入参的对象
+		就会放到数据模型中
+		
+		@ModelAttribute
+			• 在方法定义上使用 @ModelAttribute 注解：Spring MVC 
+			在调用目标处理方法前，会先逐个调用在方法级上标注了
+			@ModelAttribute 的方法。
+			
+			• 在方法的入参前使用 @ModelAttribute 注解：
+			– 可以从隐含对象中获取隐含的模型数据中获取对象，再将请求参数
+			绑定到对象中，再传入入参
+			– 将方法入参对象添加到模型中
+	
+				
+		/**
+		 * 运行流程:
+		 * 1.执行@ModelAttribute注解修饰的方法 :从数据库中取出对象，把对象放入到map中:键是user
+		 * 2.springmvc 从map中取出User 对象并把表单的请求参数赋给User对象的对应属性
+		 * 3.springmvc把上述对象传人目标方法的参数
+		 * 
+		 * 注意:
+		 * 	在@ModelAttribute修饰的方法中放入到Map时的键需要和目标方法入参的类型的第一个字母小写的字符串一致
+		 * 
+		 * 由@ModelAttribute标记的方法会在每个目标方法执行之前被Springmvc 调用
+		 * 
+		 * 
+		 *  * SpringMVC 确定目标方法 POJO 类型入参的过程
+		 * 1. 确定一个 key:
+		 * 1). 若目标方法的 POJO 类型的参数没有使用 @ModelAttribute 作为修饰, 则 key 为 POJO 类名第一个字母的小写
+		 * 2). 若使用了  @ModelAttribute 来修饰, 则 key 为 @ModelAttribute 注解的 value 属性值. 
+		 * 2. 在 implicitModel 中查找 key 对应的对象, 若存在, 则作为入参传入
+		 * 1). 若在 @ModelAttribute 标记的方法中在 Map 中保存过, 且 key 和 1 确定的 key 一致, 则会获取到. 
+		 * 3. 若 implicitModel 中不存在 key 对应的对象, 则检查当前的 Handler 是否使用 @SessionAttributes 注解修饰, 
+		 * 若使用了该注解, 且 @SessionAttributes 注解的 value 属性值中包含了 key, 则会从 HttpSession 中来获取 key 所
+		 * 对应的 value 值, 若存在则直接传入到目标方法的入参中. 若不存在则将抛出异常. 
+		 * 4. 若 Handler 没有标识 @SessionAttributes 注解或 @SessionAttributes 注解的 value 值中不包含 key, 则
+		 * 会通过反射来创建 POJO 类型的参数, 传入为目标方法的参数
+		 * 5. SpringMVC 会把 key 和 POJO 类型的对象保存到 implicitModel 中, 进而会保存到 request 中. 
+		 * 
+		 * 
+		 * 源码分析:
+		 * 	* 源代码分析的流程
+		 * 1. 调用 @ModelAttribute 注解修饰的方法. 实际上把 @ModelAttribute 方法中 Map 中的数据放在了 implicitModel 中.
+		 * 2. 解析请求处理器的目标参数, 实际上该目标参数来自于 WebDataBinder 对象的 target 属性
+		 * 1). 创建 WebDataBinder 对象:
+		 * ①. 确定 objectName 属性: 若传入的 attrName 属性值为 "", 则 objectName 为类名第一个字母小写. 
+		 * *注意: attrName. 若目标方法的 POJO 属性使用了 @ModelAttribute 来修饰, 则 attrName 值即为 @ModelAttribute 
+		 * 的 value 属性值 
+		 * 
+		 * ②. 确定 target 属性:
+		 * 	> 在 implicitModel 中查找 attrName 对应的属性值. 若存在, ok
+		 * 	> *若不存在: 则验证当前 Handler 是否使用了 @SessionAttributes 进行修饰, 若使用了, 则尝试从 Session 中
+		 * 获取 attrName 所对应的属性值. 若 session 中没有对应的属性值, 则抛出了异常. 
+		 * 	> 若 Handler 没有使用 @SessionAttributes 进行修饰, 或 @SessionAttributes 中没有使用 value 值指定的 key
+		 * 和 attrName 相匹配, 则通过反射创建了 POJO 对象
+		 * 
+		 * 2). SpringMVC 把表单的请求参数赋给了 WebDataBinder 的 target 对应的属性. 
+		 * 3). *SpringMVC 会把 WebDataBinder 的 attrName 和 target 给到 implicitModel. 
+		 * 近而传到 request 域对象中. 
+		 * 4). 把 WebDataBinder 的 target 作为参数传递给目标方法的入参. 
+		 * 
+		 * 
+		 * 
+		/**
+		 * 1. 有 @ModelAttribute 标记的方法, 会在每个目标方法执行之前被 SpringMVC 调用! 
+		 * 2. @ModelAttribute 注解也可以来修饰目标方法 POJO 类型的入参, 其 value 属性值有如下的作用:
+		 * 1). SpringMVC 会使用 value 属性值在 implicitModel 中查找对应的对象, 若存在则会直接传入到目标方法的入参中.
+		 * 2). SpringMVC 会以 value 为 key, POJO 类型的对象为 value, 存入到 request 中. 
+		 */
+		@ModelAttribute
+		public void getUser( @RequestParam(value="id",required=false) Integer id , 
+	
+				Map<String , Object > map
+				) {
+			
+			
+			if ( id != null ) {
+				//模拟从数据库中获取对象
+	//			User user = new User( 1 ,"Tom", 15  ,"Tom@GuiGu.com" ,"123456" );
+	//			map.put("user", user );
+	//			System.out.println( "从数据中获取对象: "  + user );
+			}
+			
+		}
+		
+		
+		@RequestMapping("testModelAttribute")
+		 public String testModelAttribute(@ModelAttribute("user") User user) {
+			 
+			System.out.println( "修改: " + user );
+			 return SUCCESS;
+		 }
+		
+		
+		
+		/**
+		 * 
+		 * • @SessionAttributes 除了可以通过属性名指定需要放到会
+			话中的属性外(实际上使用使用的是value属性值)，还可以通过模型属性的对象类型指定哪些
+			模型属性需要放到会话中(实际上使用使用的是type属性值,
+			
+			这个注解只能放到类的上面而不能放在方法的上面
+		
+		 * @param map
+		 * @return
+		 */
+		@RequestMapping("/testSessionAttributes")
+		public String testSessionAttributes( Map<String , Object> map) {
+			
+			User user1 = new User( 0 ,"Tom", 15  ,"Tom@GuiGu.com" ,"123456" );
+			map.put("user1", user1); 
+			map.put("school" , "atguigu");
+			
+			return SUCCESS;
+		}
+		
+		加载国际化资源
+		
+			i18n_en_US.properties
+				i18n.username=Username
+				i18n.password=Password
+				
+			i18n_zh_CN.properties
+					i18n.username=用户名
+					i18n.password=密码
+					
+			i18n.properties
+			
+				i18n.username=Username
+				i18n.password=Password
+				
+				这时候使用的是jstl view
+		<!-- 配置国际化资源文件 -->
+		
+		<bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
+			<property name="basename" value="i18n"></property>
+		</bean>	
+			
+		<%@ taglib prefix="fmt"  uri="http://java.sun.com/jsp/jstl/fmt"%>	
+			<fmt:message key="i18n.username"></fmt:message>
+			<fmt:message key="i18n.password"></fmt:message>	
+			
+		InternalResourceViewResolver
+		
+		 若项目中使用了 JSTL，则 SpringMVC 会自动把视图由
+		InternalResourceView 转为 JstlView
+		
+		• 若使用 JSTL 的 fmt 标签则需要在 SpringMVC 的配置文件中配置国际
+		化资源文件	
+		
+		若希望直接响应通过 SpringMVC 渲染的页面，可以使用 mvc:view-controller 标签实现
+		
+		
+		<!-- 配置直接转发的页面
+		可以直接响应转发的页面,而无需再经过handler的方法
+		在实际开发中通常都需要 mvc:annotion-driven标签
+		 -->
+		<mvc:view-controller path="/success" view-name="success"/>
+		<mvc:annotation-driven></mvc:annotation-driven>
+		
+		
+	自定义视图：
+		
+	@Component("helloView")
+	public class HelloView implements View{
+	
+		public HelloView() {
+			// TODO Auto-generated constructor stub
+		}
+	
+		public String getContentType() {
+			
+				
+			return "text/html";
+		}
+		
+		
+		public void render(Map<String, ?> model, HttpServletRequest request, HttpServletResponse response)
+				throws Exception {
+			System.out.println( "xxxxxxxxxxxx");
+			
+			response.getWriter().print("hello view , time : " + new Date() );
+		}
+	}	
+	
+	
+	@RequestMapping("/testHelloView")
+	public String testView() {
+		System.out.println( "hello View");
+		return "helloView";
+	}
+	
+	
+	<!-- 配置BeanNameViewResolver视图解析器:
+		使用视图的名字来解析视图
+		通过order属性来定义属性的优先级:order值越小优先级越高,默认值是int的最导致
+		直接解析bean的id 然后调用对应的render方法
+		
+		 -->
+	<bean class="org.springframework.web.servlet.view.BeanNameViewResolver">
+		<property name="order" value="100"></property>
+	</bean>
+	
+	Excel 视图
+	• 若希望使用 Excel 展示数据列表，仅需要扩展
+	SpringMVC 提供的 AbstractExcelView 或
+	AbstractJExcel View 即可。实现 buildExcelDocument() 
+	方法，在方法中使用模型数据对象构建 Excel 文档就可以
+	了。
+	
+	• AbstractExcelView 基于 POI API，而
+	AbstractJExcelView 是基于 JExcelAPI 的。
+	
+	• 视图对象需要配置 IOC 容器中的一个 Bean，使用
+	BeanNameViewResolver 作为视图解析器即可
+	
+	• 若希望直接在浏览器中直接下载 Excel 文档，则可以设置
+	响应头 Content-Disposition 的值为
+	attachment;filename=xxx.xls
+	
+	
+	关于重定向:
+	
+		• 一般情况下，控制器方法返回字符串类型的值会被当成逻
+		辑视图名处理
+		• 如果返回的字符串中带 forward: 或 redirect: 前缀
+		时，SpringMVC 会对他们进行特殊处理：将 forward: 和
+		redirect: 当成指示符，其后的字符串作为 URL 来处理 – redirect:success.jsp：会完成一个到 success.jsp 的重定向的操作
+		– forward:success.jsp：会完成一个到 success.jsp 的转发操作
+		
+	@RequestMapping("testRedirect")
+	public String testRedirect() {
+		
+		System.out.println( "testRedirect");
+		return "redirect:/index.jsp";
+	}
+	
+	
+	RESTFUL CRUD:
+	
+		使用 Spring 的表单标签
+			• 通过 SpringMVC 的表单标签可以实现将模型数据
+			中的属性和 HTML 表单元素相绑定，以实现表单
+			数据更便捷编辑和表单值的回显
+			
+		form 标签
+		
+		• 一般情况下，通过 GET 请求获取表单页面，而通过
+		POST 请求提交表单页面，因此获取表单页面和提交表单
+		页面的 URL 是相同的。只要满足该最佳条件的契
+		约，<form:form> 标签就无需通过 action 属性指定表单
+		提交的 URL
+		
+		• 可以通过 modelAttribute 属性指定绑定的模型属性，若
+		没有指定该属性，则默认从 request 域对象中读取
+		command 的表单 bean，如果该属性值也不存在，则会
+		发生错误。
+		
+		表单标签
+		
+			SpringMVC 提供了多个表单组件标签，如
+			<form:input/>、<form:select/> 等，用以绑定表单字段的
+			属性值，它们的共有属性如下：
+			– path：表单字段，对应 html 元素的 name 属性，支持级联属性
+			– htmlEscape：是否对表单值的 HTML 特殊字符进行转换，默认值
+			为 true
+			– cssClass：表单组件对应的 CSS 样式类名
+			– cssErrorClass：表单组件的数据存在错误时，采取的 CSS 样式
+			
+			form:input、form:password、form:hidden、form:textarea
+			：对应 HTML 表单的 text、password、hidden、textarea
+			标签
+			• form:radiobutton：单选框组件标签，当表单 bean 对应的
+			属性值和 value 值相等时，单选框被选中
+			• form:radiobuttons：单选框组标签，用于构造多个单选
+			框
+			– items：可以是一个 List、String[] 或 Map
+			– itemValue：指定 radio 的 value 值。可以是集合中 bean 的一个
+			属性值
+			– itemLabel：指定 radio 的 label 值
+			– delimiter：多个单选框可以通过 delimiter 指定分隔符
+	
+		orm:checkbox：复选框组件。用于构造单个复选框
+		• form:checkboxs：用于构造多个复选框。使用方式同
+		form:radiobuttons 标签
+		• form:select：用于构造下拉框组件。使用方式同
+		form:radiobuttons 标签
+		• form:option：下拉框选项组件标签。使用方式同
+		form:radiobuttons 标签
+		• form:errors：显示表单组件或数据校验所对应的错误 – <form:errors path= “ *” /> ：显示表单所有的错误
+		– <form:errors path= “ user*” /> ：显示所有以 user 为前缀的属性对应
+		的错误
+		– <form:errors path= “ username” /> ：显示特定表单对象属性的错误
+	
+	
+	
+		<%@page import="java.util.HashMap"%>
+		<%@page import="java.util.Map"%>
+		<%@ page language="java" contentType="text/html; charset=UTF-8"
+		    pageEncoding="UTF-8"%>
+		   <%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
+		<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3.org/TR/html4/loose.dtd">
+		<html>
+		<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+		<title>Insert title here</title>
+		</head>
+		<body>
+		
+			<!-- 为什么需呀使用form标签 
+			可以更快速的开发出表单页面而且可以更方便的进行表单值 的回显
+			
+			• 可以通过 modelAttribute 属性指定绑定的模型属性，若
+			没有指定该属性，则默认从 request 域对象中读取
+			command 的表单 bean，如果该属性值也不存在，则会
+			发生错误(springmvc 认为表单一定会回显 所以会出现异常)
+			 -->
+			<form:form action="emp" method="post" modelAttribute="employee">
+				<!-- path 属性对于html标签标签的name 属性值 -->
+				LastName:<form:input path="lastName" />
+				<br>
+				LastName:<form:input path="email" />
+				<br>
+				<%
+					Map<String,String> genders = new HashMap<String,String>();
+					genders.put("1", "Male");
+					genders.put("0", "Female");
+					request.setAttribute("genders", genders);
+				%>
+				Gender:<form:radiobuttons path="gender" items="${genders}"
+				
+				/>
+				<br>
+				DepartMent:<form:select path="department" items="${requestScope.departments}"
+				itemLabel="departmentName" itemValue="id"
+				></form:select>
+				<br>
+				<input type="submit" value="提交"> 
+			</form:form>
+			
+		</body>
+		</html>
+		
+		@RequestMapping(value="/emp", method=RequestMethod.GET)
+		public String input(Map<String, Object> map){
+			map.put("departments", departmentDao.getDepartments());
+			map.put("employee", new Employee());
+			return "input";
+		}
+		
+		@RequestMapping("/emps")
+		public String list(Map<String, Object> map){
+			map.put("employees", employeeDao.getAll());
+			return "list";
+		}
+	
+	Spring mvc 处理静态资源:
+		1.为什么会有这个问题	
+		• 优雅的 REST 风格的资源URL 不希望带 .html 或 .do 等后缀
+		• 若将 DispatcherServlet 请求映射配置为 /，则 Spring MVC 将捕获
+			WEB 容器的所有请求，包括静态资源的请求， SpringMVC 会将他
+			们当成一个普通请求处理，因找不到对应处理器将导致错误。
+		• 可以在 SpringMVC 的配置文件中配置 <mvc:default-servlet-handler/> 的方式解决静态资源的问题：
+		– <mvc:default-servlet-handler/> 将在 SpringMVC 上下文中定义一个
+			DefaultServletHttpRequestHandler，它会对进入 DispatcherServlet 的
+			请求进行筛查，如果发现是没有经过映射的请求，就将该请求交由 WEB 
+			应用服务器默认的 Servlet 处理，如果不是静态资源的请求，才由
+			DispatcherServlet 继续处理
+		
+		一般 WEB 应用服务器默认的 Servlet 的名称都是 default。若所使用的
+		WEB 服务器的默认 Servlet 名称不是 default，则需要通过 defaultservlet-name 属性显式指定
+		
+		解决方式:
+		在springmvc的配置文件中配置<mvc:default-servlet-handler/> 
+		
+			<!-- 
+			
+		 -->
+	 	<mvc:default-servlet-handler/>
+		<mvc:annotation-driven></mvc:annotation-driven>
+	
+	
+	删除 ：
+			$(function() {
+				$(".delete").click(function(){
+					var href = $(this).attr("href");
+					$("form").attr("action", href).submit();			
+					return false;
+				});
+			})
+		
+		</script>
+		</head>
+		<body>
+		
+			<form action="" method="POST">
+				<input type="hidden" name="_method" value="DELETE"/>
+			</form>
+			
+		<td><a class="delete" href="emp/${item.id}">Delete</a></td>
+		
+	
+	
+	数据绑定流程
+		• 1. Spring MVC 主框架将 ServletRequest 对象及目标方
+		法的入参实例传递给 WebDataBinderFactory 实例，以创
+		建 DataBinder 实例对象
+		• 2. DataBinder 调用装配在 Spring MVC 上下文中的
+		ConversionService 组件进行数据类型转换、数据格式
+		化工作。将 Servlet 中的请求信息填充到入参对象中
+		• 3. 调用 Validator 组件对已经绑定了请求消息的入参对象
+		进行数据合法性校验，并最终生成数据绑定结果
+		BindingData 对象
+		• 4. Spring MVC 抽取 BindingResult 中的入参对象和校验
+		错误对象，将它们赋给处理方法的响应入参
+		
+		自定义类型转换器:
+		
+		• ConversionService 是 Spring 类型转换体系的核心接口。
+		• 可以利用 ConversionServiceFactoryBean 在 Spring 的 IOC 
+		容器中定义一个 ConversionService. Spring 将自动识别出
+		IOC 容器中的 ConversionService，并在 Bean 属性配置及
+		Spring MVC 处理方法入参绑定等场合使用它进行数据的转换
+		• 可通过 ConversionServiceFactoryBean 的 converters 属性
+		注册自定义的类型转换器
+		
+		
+		Spring 支持的转换器
+		• Spring 定义了 3 种类型的转换器接口，实现任意一个转换
+		器接口都可以作为自定义转换器注册到
+		ConversionServiceFactroyBean 中：
+		– Converter<S,T>：将 S 类型对象转为 T 类型对象
+		– ConverterFactory：将相同系列多个 “同质” Converter 封装在一
+		起。如果希望将一种类型的对象转换为另一种类型及其子类的对
+		象（例如将 String 转换为 Number 及 Number 子类
+		（Integer、Long、Double 等）对象）可使用该转换器工厂类
+		– GenericConverter：会根据源类对象及目标类对象所在的宿主类
+		中的上下文信息进行类型转换
+		
+		
+		自定义转换器示例(了解)
+		• <mvc:annotation-driven conversion-service=
+		“conversionService”/> 会将自定义的 ConversionService 注册到
+		Spring MVC 的上下文中
+		
+		1.注册转换器
+				
+			 <bean id="conversionServiceFactoryBean" class="org.springframework.context.support.ConversionServiceFactoryBean" >
+			 		<property name="converters">
+			 				<set>
+			 					<ref bean="employeConverter"/>
+			 				</set>
+			 		</property>
+			 </bean>
+			 
+		 	<mvc:default-servlet-handler />
+			<mvc:annotation-driven conversion-service="conversionServiceFactoryBean"></mvc:annotation-driven>
+			
+			
+		2.自定义转换类
+		
+		@Component
+		public class EmployeConverter implements Converter<String, Employee> {
+		
+			public EmployeConverter() {
+				// TODO Auto-generated constructor stub
+			}
+		
+			@Override
+			public Employee convert(String source) {
+				
+				if( source != null ) {
+					
+					String[] vals =  source.split("-");
+					
+					if ( vals != null && vals.length == 4 )
+					{
+						Employee employee = new Employee();
+						employee.setLastName(vals[0]);
+						employee.setEmail(vals[1]);
+						employee.setGender(Integer.parseInt(vals[2]));
+						Department department = new Department();
+						department.setId( Integer.parseInt(vals[3]));
+						employee.setDepartment(department);
+						System.out.println(source + " -->>  " + employee );
+						return employee;
+					}
+				}
+				return null;
+			}
+		
+		}
+		
+		
+	关于 mvc:annotation-driven  实际开发中一定要加入这个配置
+	
+		• <mvc:annotation-driven /> 会自动注
+		册RequestMappingHandlerMapping
+		、RequestMappingHandlerAdapter 与
+		ExceptionHandlerExceptionResolver 三个bean。
+		
+		• 还将提供以下支持：
+		– 支持使用 ConversionService 实例对表单参数进行类型转换
+		– 支持使用 @NumberFormat annotation、@DateTimeFormat
+		注解完成数据类型的格式化
+		– 支持使用 @Valid 注解对 JavaBean 实例进行 JSR 303 验证
+		– 支持使用 @RequestBody 和 @ResponseBody 注解
+		
+		
+	@InitBinder
+	• 由 @InitBinder 标识的方法，可以对 WebDataBinder 对
+	象进行初始化。WebDataBinder 是 DataBinder 的子类，用
+	于完成由表单字段到 JavaBean 属性的绑定
+	• @InitBinder方法不能有返回值，它必须声明为void。
+	• @InitBinder方法的参数通常是是 WebDataBinder
+		
+		@InitBinder
+		public void initBinder(WebDataBinder binder){
+			//那个值不进行赋值
+			binder.setDisallowedFields("lastName");
+			
+		}	
+		
+		
+	数据格式化
+		• 对属性对象的输入/输出进行格式化，从其本质上讲依然
+		属于 “类型转换” 的范畴。
+		• Spring 在格式化模块中定义了一个实现
+		ConversionService 接口的
+		FormattingConversionService 实现类，该实现类扩展
+		了 GenericConversionService，因此它既具有类型转换的
+		功能，又具有格式化的功能
+		• FormattingConversionService 拥有一个
+		FormattingConversionServiceFactroyBean 工厂类，
+		后者用于在 Spring 上下文中构造前者
+		
+		
+	数据格式化
+	• FormattingConversionServiceFactroyBean 内部已经注册了 :
+	– NumberFormatAnnotationFormatterFactroy：支持对数字类型的属性
+	使用 @NumberFormat 注解
+	
+	– JodaDateTimeFormatAnnotationFormatterFactroy：支持对日期类型
+	的属性使用 @DateTimeFormat 注解
+	
+	• 装配了 FormattingConversionServiceFactroyBean 后，就可
+	以在 Spring MVC 入参绑定及模型数据输出时使用注解驱动
+	了。<mvc:annotation-driven/> 默认创建的
+	ConversionService 实例即为
+	FormattingConversionServiceFactroyBean
+	
+	
+	日期格式化
+	
+	• @DateTimeFormat 注解可对
+	java.util.Date、java.util.Calendar、java.long.Long 时间
+	类型进行标注：
+	– pattern 属性：类型为字符串。指定解析/格式化字段数据的模式，
+	如：”yyyy-MM-dd hh:mm:ss”
+	– iso 属性：类型为 DateTimeFormat.ISO。指定解析/格式化字段数据
+	的ISO模式，包括四种：ISO.NONE（不使用） -- 默
+	认、ISO.DATE(yyyy-MM-dd) 、ISO.TIME(hh:mm:ss.SSSZ)、
+	ISO.DATE_TIME(yyyy-MM-dd hh:mm:ss.SSSZ)
+	– style 属性：字符串类型。通过样式指定日期时间的格式，由两位字
+	符组成，第一位表示日期的格式，第二位表示时间的格式：S：短日
+	期/时间格式、M：中日期/时间格式、L：长日期/时间格式、F：完整
+	日期/时间格式、-：忽略日期或时间格式
+	
+	
+	数值格式化
+	• @NumberFormat 可对类似数字类型的属性进行标
+	注，它拥有两个互斥的属性：
+	– style：类型为 NumberFormat.Style。用于指定样式类
+	型，包括三种：Style.NUMBER（正常数字类型）、
+	Style.CURRENCY（货币类型）、 Style.PERCENT（
+	百分数类型）
+	– pattern：类型为 String，自定义样式，
+	如patter="#,###"；
+	
+	FormattingConversionServiceFactoryBean 是springmvc默认配置的转换类
+	可以自己定义类型转换器 还能转换日期和结果
+	
+	1.	使用下面的或者直接使用默认的<mvc:annotation-driven />
+	
+	<mvc:annotation-driven conversion-service="conversionService"></mvc:annotation-driven>
+	
+	<!-- 配置 ConversionService -->
+	<bean id="conversionService"
+		class="org.springframework.format.support.FormattingConversionServiceFactoryBean">
+		<property name="converters">
+			<set>
+				<ref bean="employeConverter"/>
+			</set>
+		</property>	
+	</bean>	
+	
+	
+	2.给实体类字段添加注解	
+	@DateTimeFormat(pattern="yyyy-MM-dd")
+	private Date birth;
+	
+	3.如果类型转换出错怎么处理
+	@RequestMapping(value="/emp", method=RequestMethod.POST)
+	public String save(@Valid Employee employee, Errors result, 
+			Map<String, Object> map){
+		System.out.println("save: " + employee);
+		
+		if(result.getErrorCount() > 0){
+			System.out.println("出错了!");
+			
+			for(FieldError error:result.getFieldErrors()){
+				System.out.println(error.getField() + ":" + error.getDefaultMessage());
+			}
+			
+			//若验证出错, 则转向定制的页面
+			map.put("departments", departmentDao.getDepartments());
+			return "input";
+		}
+		
+		employeeDao.save(employee);
+		return "redirect:/emps";
+	}
+	
+	数据校验:
+	
+		1.如何校验 注解?
+			1.使用jsr303验证标准
+			2.需要加入hibernater Validator 验证框架 jar包
+				<dependency>
+				    <groupId>org.hibernate</groupId>
+				    <artifactId>hibernate-validator</artifactId>
+				    <version>5.2.4.Final</version>
+				</dependency>
+				<!-- https://mvnrepository.com/artifact/javax.validation/validation-api -->
+				<dependency>
+				    <groupId>javax.validation</groupId>
+				    <artifactId>validation-api</artifactId>
+				    <version>1.1.0.Final</version>
+				</dependency>
+				
+			3.需要在springmvc配置文件中添加 <mvc:annotation-driven/>
+			4.需要在bean的上添加对应的注解
+				@Email
+				private String email;
+				//1 male, 0 female
+				private Integer gender;
+				
+				private Department department;
+				
+				//@Past  表示这个应该是之前的时间
+				@DateTimeFormat(pattern="yyyy-MM-dd")
+				@Past
+				private Date birth;
+			
+			5.在目标方法bean类型的前面添加@Valid注解
+				@RequestMapping(value="/emp", method=RequestMethod.POST)
+				public String save(@Valid Employee employee, Errors result, 
+						Map<String, Object> map){
+					System.out.println("save: " + employee);
+					
+					if(result.getErrorCount() > 0){
+						System.out.println("出错了!");
+						
+						for(FieldError error:result.getFieldErrors()){
+							System.out.println(error.getField() + ":" + error.getDefaultMessage());
+						}
+						
+						//若验证出错, 则转向定制的页面
+						map.put("departments", departmentDao.getDepartments());
+						return "input";
+					}
+					
+					employeeDao.save(employee);
+					return "redirect:/emps";
+				}
+			
+		2.验证错误转向那个页面
+		3.错误消息?如何显示,如何把错误消息进行国际化
+		
+			提示消息的国际化
+			• 每个属性在数据绑定和数据校验发生错误时，都会生成一
+			个对应的 FieldError 对象。
+			• 当一个属性校验失败后，校验框架会为该属性生成 4 个消
+			息代码，这些代码以校验注解类名为前缀，结合
+			modleAttribute、属性名及属性类型名生成多个对应的消
+			息代码：例如 User 类中的 password 属性标准了一个 @Pattern 注
+			解，当该属性值不满足 @Pattern 所定义的规则时, 就会产生以下 4 
+			个错误代码： – Pattern.user.password
+			– Pattern.password
+			– Pattern.java.lang.String
+			– Pattern
+			• 当使用 Spring MVC 标签显示错误消息时， Spring MVC 会查看
+			WEB 上下文是否装配了对应的国际化消息，如果没有，则显示默认
+			的错误消息，否则使用国际化消息。
+			
+		以下步骤
+		<form:errors path="*"></form:errors>
+		
+			i18n_en_US.properties
+			i18n_zh_CN.properties
+			i18n.properties
+	
+			NotEmpty.employee.lastName=^^LastName\u4E0D\u80FD\u4E3A\u7A7A.
+			Email.employee.email=Email\u5730\u5740\u4E0D\u5408\u6CD5
+			Past.employee.birth=Birth\u4E0D\u80FD\u662F\u4E00\u4E2A\u5C06\u6765\u7684\u65F6\u95F4. 
+			typeMismatch.employee.birth=Birth\u4E0D\u662F\u4E00\u4E2A\u65E5\u671F. 
+			
+			i18n.user=User
+			i18n.password=Password
+			
+		
+			<!-- 配置国际化资源文件 -->
+			
+			<bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
+				<property name="basename" value="i18n"></property>
+			</bean>
+	
+	JSR 303:
+	
+		JSR 303 是 Java 为 Bean 数据合法性校验提供的标准框架，
+		它已经包含在 JavaEE 6.0 中 .
+		
+		• JSR 303 通过在 Bean 属性上标注类似于 @NotNull、@Max 
+		等标准的注解指定校验规则，并通过标准的验证接口对 Bean 
+		进行验证
+	
+	JSR 303:的默认实现	
+   Hibernate Validator 扩展注解	
+	• Hibernate Validator 是 JSR 303 的一个参考实现，除支持
+	所有标准的校验注解外，它还支持以下的扩展注解	
+	
+	
+	Spring MVC 数据校验
+		• Spring 4.0 拥有自己独立的数据校验框架，同时支持 JSR 
+		303 标准的校验框架。
+		• Spring 在进行数据绑定时，可同时调用校验框架完成数据校
+		验工作。在 Spring MVC 中，可直接通过注解驱动的方式
+		进行数据校验
+		• Spring 的 LocalValidatorFactroyBean 既实现了 Spring 的
+		Validator 接口，也实现了 JSR 303 的 Validator 接口。只要
+		在 Spring 容器中定义了一个
+		LocalValidatorFactoryBean，即可将其注入到需要数据校
+		验的 Bean 中。
+		• Spring 本身并没有提供 JSR303 的实现，所以必须将
+		JSR303 的实现者的 jar 包放到类路径下
+		
+	Spring MVC 数据校验
+		• <mvc:annotation-driven/> 会默认装配好一个
+		LocalValidatorFactoryBean，通过在处理方法的入参上标
+		注 @valid 注解即可让 Spring MVC 在完成数据绑定后执行
+		数据校验的工作
+		• 在已经标注了 JSR303 注解的表单/命令对象前标注一个
+		@Valid，Spring MVC 框架在将请求参数绑定到该入参对象
+		后，就会调用校验框架根据注解声明的校验规则实施校验
+		• Spring MVC 是通过对处理方法签名的规约来保存校验结果
+		的：前一个表单/命令对象的校验结果保存到随后的入参
+		中，这个保存校验结果的入参必须是 BindingResult 或
+		Errors 类型，这两个类都位于
+		org.springframework.validation 包中	
+		
+	Spring MVC 数据校验
+		• 需校验的 Bean 对象和其绑定结果对象或错误对象时成对出现的，它们
+		之间不允许声明其他的入参
+		• Errors 接口提供了获取错误信息的方法，如 getErrorCount() 或
+		getFieldErrors(String field) 
+		• BindingResult 扩展了 Errors 接口
+	
+	
+	在目标方法中获取校验结果
+		• 在表单/命令对象类的属性中标注校验注解，在处理方法对
+		应的入参前添加 @Valid，Spring MVC 就会实施校验并将校
+		验结果保存在被校验入参对象之后的 BindingResult 或
+		Errors 入参中。
+		• 常用方法：
+		– FieldError getFieldError(String field)
+		– List<FieldError> getFieldErrors()
+		– Object getFieldValue(String field)
+		– Int getErrorCount()
+		
+	在页面上显示错误
+		• Spring MVC 除了会将表单/命令对象的校验结果保存到对
+		应的 BindingResult 或 Errors 对象中外，还会将所有校验
+		结果保存到 “隐含模型”
+		• 即使处理方法的签名中没有对应于表单/命令对象的结果
+		入参，校验结果也会保存在 “隐含对象” 中。
+		• 隐含模型中的所有数据最终将通过 HttpServletRequest 的
+		属性列表暴露给 JSP 视图对象，因此在 JSP 中可以获取
+		错误信息
+		• 在 JSP 页面上可通过 <form:errors path=“userName”> 
+		显示错误消息
+		
+	提示消息的国际化
+		• 每个属性在数据绑定和数据校验发生错误时，都会生成一
+		个对应的 FieldError 对象。
+		• 当一个属性校验失败后，校验框架会为该属性生成 4 个消
+		息代码，这些代码以校验注解类名为前缀，结合
+		modleAttribute、属性名及属性类型名生成多个对应的消
+		息代码：例如 User 类中的 password 属性标准了一个 @Pattern 注
+		解，当该属性值不满足 @Pattern 所定义的规则时, 就会产生以下 4 
+		个错误代码： – Pattern.user.password
+		– Pattern.password
+		– Pattern.java.lang.String
+		– Pattern
+		• 当使用 Spring MVC 标签显示错误消息时， Spring MVC 会查看
+		WEB 上下文是否装配了对应的国际化消息，如果没有，则显示默认
+		的错误消息，否则使用国际化消息。
+		
+处理 JSON：
+		1. 加入 jar 包：加入转换json的jar包
+		
+		<!-- https://mvnrepository.com/artifact/com.alibaba/fastjson -->
+		<dependency>
+		    <groupId>com.alibaba</groupId>
+		    <artifactId>fastjson</artifactId>
+		    <version>1.2.47</version>
+		</dependency>
+		• 2. 编写目标方法，使其返回 JSON 对应的对象或集合
+		
+			@ResponseBody
+			@RequestMapping("/testJson")
+			String testJson() {
+				
+				return JSONObject.toJSONString(employeeDao.get(1001));
+			}
+			
+		• 3. 在方法上添加 @ResponseBody 注解
+		加入fastjson需要方法返回为String  参见上面的
+		
+		
+		加入jackson-databind  可以直接返回对象
+		
+			<dependency>
+			    <groupId>com.fasterxml.jackson.core</groupId>
+			    <artifactId>jackson-databind</artifactId>
+			    <version>2.9.7</version>
+			</dependency>
+		
+		
+			@ResponseBody
+			@RequestMapping("/testJson")
+			Employee testJson() {
+				
+				return employeeDao.get(1001);
+			}
+		
+	 转换json的原理:
+	 
+	HttpMessageConverter<T>
+	
+		• HttpMessageConverter<T> 是 Spring3.0 新添加的一个接
+		口，功能
+			1.负责将请求信息转换为一个对象（类型为 T），将对象（
+			类型为 T）
+			2.输出为响应信息
+			
+		• HttpMessageConverter<T>接口定义的方法： – Boolean canRead(Class<?> clazz,MediaType mediaType): 指定转换器
+			
+			可以读取的对象类型，即转换器是否可将请求信息转换为 clazz 类型的对
+			象，同时指定支持 MIME 类型(text/html,applaiction/json等)
+			– Boolean canWrite(Class<?> clazz,MediaType mediaType):指定转换器
+			是否可将 clazz 类型的对象写到响应流中，响应流支持的媒体类型
+			在MediaType 中定义。
+			– LIst<MediaType> getSupportMediaTypes()：该转换器支持的媒体类
+			型。
+			– T read(Class<? extends T> clazz,HttpInputMessage inputMessage)：
+			将请求信息流转换为 T 类型的对象。
+			– void write(T t,MediaType contnetType,HttpOutputMessgae
+			outputMessage):将T类型的对象写到响应流中，同时指定相应的媒体类
+			型为 contentType。
+	
+	使用 HttpMessageConverter<T>
+		
+		• 使用 HttpMessageConverter<T> 将请求信息转化并绑定到处理方法的入
+		参中或将响应结果转为对应类型的响应信息，Spring 提供了两种途径：
+		– 使用 @RequestBody / @ResponseBody 对处理方法进行标注
+		– 使用 HttpEntity<T> / ResponseEntity<T> 作为处理方法的入参或返回值
+		
+		• 当控制器处理方法使用到 @RequestBody/@ResponseBody 或
+		HttpEntity<T>/ResponseEntity<T> 时, Spring 首先根据请求头或响应头的
+		Accept 属性选择匹配的 HttpMessageConverter, 进而根据参数类型或
+		泛型类型的过滤得到匹配的 HttpMessageConverter, 若找不到可用的
+		HttpMessageConverter 将报错
+		
+		• @RequestBody 和 @ResponseBody 不需要成对出现	
+		
+		
+		@RequestBody修饰方法的入参的
+		
+		简介：
+		@RequestBody
+		作用： 
+		      i) 该注解用于读取Request请求的body部分数据，使用系统默认配置的HttpMessageConverter进行解析，然后把相应的数据绑定到要返回的对象上；
+		      ii) 再把HttpMessageConverter返回的对象数据绑定到 controller中方法的参数上。
+		
+		使用时机：
+		
+		A) GET、POST方式提时， 根据request header Content-Type的值来判断:
+		
+		    application/x-www-form-urlencoded， 可选（即非必须，因为这种情况的数据@RequestParam, @ModelAttribute也可以处理，当然@RequestBody也能处理）；
+		    multipart/form-data, 不能处理（即使用@RequestBody不能处理这种格式的数据）；
+		    其他格式， 必须（其他格式包括application/json, application/xml等。这些格式的数据，必须使用@RequestBody来处理）；
+		 
+		B) PUT方式提交时， 根据request header Content-Type的值来判断:
+		
+		    application/x-www-form-urlencoded， 必须；
+		    multipart/form-data, 不能处理；
+		    其他格式， 必须；
+		说明：request的body部分的数据编码格式由header部分的Content-Type指定；
+		
+		@ResponseBody
+		 
+		作用： 
+		      该注解用于将Controller的方法返回的对象，通过适当的HttpMessageConverter转换为指定格式后，写入到Response对象的body数据区。
+		
+		使用时机：
+		      返回的数据不是html标签的页面，而是其他某种格式的数据时（如json、xml等）使用；
+
+	 			
+		@RequestMapping("/testHttpMessageConverter")
+		@ResponseBody
+		public String testHttpMessageConverter( @RequestBody String body) {
+			
+			System.out.println( body );
+			return "hellow world " + new Date();
+		}
+
+		@RequestMapping("/testResponseEntity")
+		public ResponseEntity<byte[]> testResponseEntity(HttpSession session) throws IOException{
+			byte [] body = null;
+			ServletContext servletContext = session.getServletContext();
+			InputStream in = servletContext.getResourceAsStream("/files/abc.txt");
+			body = new byte[in.available()];
+			in.read(body);
+			
+			HttpHeaders headers = new HttpHeaders();
+			headers.add("Content-Disposition", "attachment;filename=abc.txt");
+			
+			HttpStatus statusCode = HttpStatus.OK;
+			
+			ResponseEntity<byte[]> response = new ResponseEntity<byte[]>(body, headers, statusCode);
+			return response;
+		}
+		
+	
+国际化概述
+
+	• 默认情况下，SpringMVC 根据 Accept-Language 参数
+	判断客户端的本地化类型。
+	
+	• 当接受到请求时，SpringMVC 会在上下文中查找一个本
+	地化解析器（LocalResolver），找到后使用它获取请求
+	所对应的本地化类型信息。
+	
+	• SpringMVC 还允许装配一个动态更改本地化类型的拦截
+	器，这样通过指定一个请求参数就可以控制单个请求的本
+	地化类型	
+	本地化解析器和本地化拦截器
+	
+	• AcceptHeaderLocaleResolver：根据 HTTP 请求头的
+	Accept-Language 参数确定本地化类型，如果没有显式定义
+	本地化解析器， SpringMVC 使用该解析器。
+		
+	• CookieLocaleResolver：根据指定的 Cookie 值确定本地化类
+	型
+	
+	• SessionLocaleResolver：根据 Session 中特定的属性确定本
+	地化类型
+	
+	• LocaleChangeInterceptor：从请求参数中获取本次请求对应
+	的本地化类型。		
+	
+	
+	关于国际化:
+		1.在页面上能够根据浏览器设置的语言对文本时间数值进行国际化
+		2.可以在bean中获取国际化资源文件Locale对应的信息
+		3.可以通过超链接来切换Locale而不依赖浏览器的语言设置情况
+		
+		解决:
+			1.使用fmt标签
+			2.在bean中注入org.springframework.context.support.ResourceBundleMessageSource的实例
+			使其对应的getmessage
+			3.配置LocaleChangeInterceptor 和 LocalResovler 
+			
+			<fmt:message key="i18n.user"></fmt:message>
+				<a href="i18n">i18n.jsp</a>
+				
+		
+		<bean id="messageSource" class="org.springframework.context.support.ResourceBundleMessageSource">
+		<property name="basename" value="i18n"></property>
+		</bean>
+		
+		<mvc:view-controller path="/i18n" view-name="i18n"/>
+		<mvc:view-controller path="/i18n2" view-name="i18n2"/>
+		
+		
+		在Handle中获取Message
+				@Autowired
+				private ResourceBundleMessageSource messageSource;
+				
+				
+				@RequestMapping("/i18n")
+				public String testi18n() {
+					System.out.println( messageSource.getMessage("i18n.user", null, Locale.CHINESE));
+					return "i18n";
+				}
+				
+		通过超链接改变语言  主要通过配置拦截器来实现的
+				<!-- 配置SessionLocalResovler -->
+			<bean id="localeResolver" class="org.springframework.web.servlet.i18n.SessionLocaleResolver"></bean>
+			
+			<!-- 配置LocaleChanceInterceptor -->
+			<mvc:interceptors >
+				<bean class="org.springframework.web.servlet.i18n.LocaleChangeInterceptor"></bean>
+			</mvc:interceptors>
+			
+			<a href="i18n?locale=zn_CH">中文</a>
+			<a href="i18n?locale=en_US">英文</a>
+			
+		文件上传
+			• Spring MVC 为文件上传提供了直接的支持，这种支持是通
+			过即插即用的 MultipartResolver 实现的。Spring 用
+			Jakarta Commons FileUpload 技术实现了一个
+			MultipartResolver 实现类：CommonsMultipartResovler
+			
+			• Spring MVC 上下文中默认没有装配 MultipartResovler，因
+			此默认情况下不能处理文件的上传工作，如果想使用 Spring 
+			的文件上传功能，需现在上下文中配置 MultipartResolver
+			
+			配置 MultipartResolver
+			• defaultEncoding: 必须和用户 JSP 的 pageEncoding 属性
+			一致，以便正确解析表单的内容
+			• 为了让 CommonsMultipartResovler 正确工作，必须先
+			将 Jakarta Commons FileUpload 及 Jakarta Commons io
+			的类包添加到类路径下。
+		
+		
+			 <!-- https://mvnrepository.com/artifact/commons-fileupload/commons-fileupload -->
+		<dependency>
+		    <groupId>commons-fileupload</groupId>
+		    <artifactId>commons-fileupload</artifactId>
+		    <version>1.3.1</version>
+		</dependency>
+
+			
+				
+		<!-- 配置  MultipartResolver-->
+		<bean  id="multipartResolver"  class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+			<property name="defaultEncoding" value="UTF-8"></property>
+			<property name="maxUploadSize" value="1024000000"></property>
+		</bean>	
+	
+			
+		@RequestMapping( value= "/testFileUpload" , method = RequestMethod.POST)
+		public String testFileUpload(   String desc , MultipartFile file ) throws IOException {
+			
+			System.out.println( "desc:" + desc );
+			System.out.println( "file:" + file.getOriginalFilename() );
+			System.out.println( file.getInputStream() );
+			
+			return "success";
+		}
+		
+	拦截器:
+		1,
+		public class FirstInterceptor implements HandlerInterceptor {
+	
+		public FirstInterceptor() {
+			// TODO Auto-generated constructor stub
+			
+			
+		}
+		/**
+		 * 该方法在目标方法之前调用
+		 * 若返回为true 则调用后续的 方法和目标方法
+		 * 若返回false停止调用后续方法
+		 * 
+		 * 可以考虑做权限. 日志, 事务等. 
+		 */
+		public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
+				throws Exception {
+			// TODO Auto-generated method stub
+			
+			System.out.println( "preHandle");
+			return true;
+		}
+	
+		/**
+		 * 调用目标方法之后, 但渲染视图之前. 
+		 * 可以对请求域中的属性或视图做出修改. 
+		 */
+		public void postHandle(HttpServletRequest request, HttpServletResponse response, Object handler,
+				ModelAndView modelAndView) throws Exception {
+			// TODO Auto-generated method stub
+			System.out.println( "postHandle");
+		}
+		
+	
+		/**
+		 * 渲染视图之后被调用. 释放资源
+		 */
+		public void afterCompletion(HttpServletRequest request, HttpServletResponse response, Object handler, Exception ex)
+				throws Exception {
+			// TODO Auto-generated method stub
+			System.out.println( "afterCompletion");
+		}
+	}
+
+		
+		
+		2.	<mvc:interceptors>
+				<bean class="com.atguigu.springmvc.interceptors.FirstInterceptor"> </bean>
+			</mvc:interceptors>	
+			
+			
+		拦截器的配置：
+		<mvc:interceptors>
+	
+			<bean class="com.atguigu.springmvc.interceptors.FirstInterceptor"> </bean>
+			
+			<mvc:interceptor>
+			<!-- 可以配置拦截器(不)作用的路径   -->
+				<mvc:mapping path="/emps"/>
+				<bean class="com.atguigu.springmvc.interceptors.SecondInterceptor"> </bean>
+			</mvc:interceptor>
+		
+		</mvc:interceptors>	
+		
+	3.异常处理
+	
+		• Spring MVC 通过 HandlerExceptionResolver 处理程序
+		的异常，包括 Handler 映射、数据绑定以及目标方法执行
+		时发生的异常。
+		
+		• SpringMVC 提供的 HandlerExceptionResolver 的实现类
+		
+		
+		HandlerExceptionResolver
+			• DispatcherServlet 默认装配的 HandlerExceptionResolver ：
+			– 没有使用 <mvc:annotation-driven/> 配置：
+			
+		使用了 <mvc:annotation-driven/> 配置
+		
+		
+			/**
+			 * 1. 在 @ExceptionHandler 方法的入参中可以加入 Exception 类型的参数, 该参数即对应发生的异常对象
+			 * 2. @ExceptionHandler 方法的入参中不能传入 Map. 若希望把异常信息传导页面上, 需要使用 ModelAndView 作为返回值
+			 * 3. @ExceptionHandler 方法标记的异常有优先级的问题. 
+			 * 4. @ControllerAdvice: 如果在当前 Handler 中找不到 @ExceptionHandler 方法来处理当前方法出现的异常, 
+			 * 则将去 @ControllerAdvice 标记的类中查找 @ExceptionHandler 标记的方法来处理异常. 
+			 */
+			@ExceptionHandler({ArithmeticException.class})
+			public String handlerArithmeticException(Exception ex) {
+				System.out.println("出异常了 " + ex );
+				return "error";
+			}
+					
+			@ControllerAdvice
+			public class SpringMVCTestExceptionHandler {
+			
+				@ExceptionHandler({ArithmeticException.class})
+				public ModelAndView handleArithmeticException(Exception ex){
+					System.out.println("----> ���쳣��: " + ex);
+					ModelAndView mv = new ModelAndView("error");
+					mv.addObject("exception", ex);
+					return mv;
+				}
+				
+			}
+		
+		
+		
+		ResponseStatusExceptionResolver
+			
+			使用这个@ResponseStatus将异常映射为http的状态码
+			
+			
+			• 在异常及异常父类中找到 @ResponseStatus 注解，然
+			后使用这个注解的属性进行处理。
+			• 定义一个 @ResponseStatus 注解修饰的异常类
+			• 若在处理器方法中抛出了上述异常：
+			若ExceptionHandlerExceptionResolver 不解析述异常。由于
+			触发的异常 UnauthorizedException 带有@ResponseStatus
+			注解。因此会被ResponseStatusExceptionResolver 解析
+			到。最后响应HttpStatus.UNAUTHORIZED 代码给客户
+			端。HttpStatus.UNAUTHORIZED 代表响应码401，无权限。
+			关于其他的响应码请参考 HttpStatus 枚举类型源码
+			
+			@ResponseStatus(value=HttpStatus.FORBIDDEN, reason="用户名和密码不匹配!")
+			public class UserNameNotMatchPasswordException extends RuntimeException{
+			
+				/**
+				 * 
+				 */
+				private static final long serialVersionUID = 1L;
+			
+				
+			}
+				
+				
+				@ResponseStatus(reason="测试",value=HttpStatus.NOT_FOUND)
+				@RequestMapping("/testResponseStatusExceptionResolver")
+				public String testResponseStatusExceptionResolver(@RequestParam("i") int i){
+					if(i == 13){
+						throw new UserNameNotMatchPasswordException();
+					}
+					System.out.println("testResponseStatusExceptionResolver...");
+					
+					return "success";
+				}
+	
+		DefaultHandlerExceptionResolver
+		
+		• 对一些特殊的异常进行处理，比
+		如NoSuchRequestHandlingMethodException、HttpReques
+		tMethodNotSupportedException、HttpMediaTypeNotSuppo
+		rtedException、HttpMediaTypeNotAcceptableException
+		等。
+		
+		SimpleMappingExceptionResolver
+		• 如果希望对所有异常进行统一处理，可以使用
+		SimpleMappingExceptionResolver，它将异常类名映射为
+		视图名，即发生异常时使用对应的视图报告异常
+		
+		<!-- 配置使用 SimpleMappingExceptionResolver 来映射异常 -->
+		<bean class="org.springframework.web.servlet.handler.SimpleMappingExceptionResolver">
+			<property name="exceptionAttribute" value="ex"></property>
+			<!--可以在页面只在requestScope中访问这个ex-->
+			<property name="exceptionMappings">
+				<props>
+					<prop key="java.lang.ArrayIndexOutOfBoundsException">error</prop>
+				</props>
+			</property>
+		</bean>	
+		
+	 
+	 
+	 springMVC 与 Spring整合:
+	 	需要进行Spring整合SpringMVC吗？
+	 	还是否需要加入Spring的IOC容器?
+	 	是否需要在web.xml文件中配置启动SpringIOC的ContextLoaderListener?
+	 	
+	 	1.需要:通常情况下类似于数据源,事务,整合其他框架都是放在Spring的配置文件中，而不是放在springmvc的配置文件中
+	 	实际上放入Spring配置文件的对应IOC容器中还有service 和Dao 
+	 	
+	 	2.不需要:
+	 		都放在Springmvc的配置文件中,也可以放多个Spring的配置文件,然后使用import节点导入其他的配置文件
+	 		或者加入通配符
+	 		
+	 	如何整合
+	 		问题:
+	 			若Spring的IOC容器和Springmvc的IOC容器扫描的包有重合的部分就会导致有的bean会被创建两次
+	 			解决:
+	 			1.spring的IOIOC容器扫描的包和SpringMVC 的IOC容器扫描的包没有重合的部分
+	 				开发的时候又是按照模块方式划分 就有点问题
+	 				
+	 			2.使用exclude-filter 和 include-filter 子节点
+	 					<context:component-scan base-package="com.atguigu.springmvc">
+							<context:exclude-filter  type="annotation" expression="org.springframework.stereotype.Controller"/>
+			 				<context:exclude-filter  type="annotation" expression=" org.springframework.web.bind.annotation.ControllerAdvice"/>
+						</context:component-scan>
+	 					
+	 					
+	 						<context:component-scan base-package="com.atguigu.springmvc" use-default-filters="false">
+								<context:include-filter  type="annotation" expression="org.springframework.stereotype.Controller"/>
+								<!--  <context:include-filter  type="annotation" expression=" org.springframework.web.bind.annotation.ControllerAdvice"/>
+								-->
+						</context:component-scan>
+						
+		Springmvc容器和 Spring容器的关系:
+				
+				在Springmvc的IOC容器中的bean可以来引用Spring 的IOC容器中的bean,反之则不行
+				Spring 的IOC 容器不能引用Springmvc的IOC 容器中的bean;
+				
+				SpringMvc容器是一个局部容器 Spring是一个全局的容器
+		
+	 	
+	 	SpringMVC 对比 Struts2
+			• ①. Spring MVC 的入口是 Servlet, 而 Struts2 是 Filter
+			• ②. Spring MVC 会稍微比 Struts2 快些. Spring MVC 是基
+			于方法设计, 而 Sturts2 是基于类, 每次发一次请求都会实
+			例一个 Action.
+			• ③. Spring MVC 使用更加简洁, 开发效率Spring MVC确实
+			比 struts2 高: 支持 JSR303, 处理 ajax 的请求更方便
+			• ④. Struts2 的 OGNL 表达式使页面的开发效率相比
+			Spring MVC 更高些. 
+			
+			
+SpringMVC核心处理流程：
+
+1、DispatcherServlet前端控制器接收发过来的请求，交给HandlerMapping处理器映射器
+
+2、HandlerMapping处理器映射器，根据请求路径找到相应的HandlerAdapter处理器适配器（处理器适配器就是那些拦截器或Controller）
+
+3、HandlerAdapter处理器适配器，处理一些功能请求，返回一个ModelAndView对象（包括模型数据、逻辑视图名）
+
+4、ViewResolver视图解析器，先根据ModelAndView中设置的View解析具体视图
+
+5、然后再将Model模型中的数据渲染到View上
+
+这些过程都是以DispatcherServlet为中轴线进行的。

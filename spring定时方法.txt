@@ -1,0 +1,179 @@
+Spring, Quartz Scheduler Example - (Spring + Quartz Scheduler)
+In this particular blog we will learn 'How to integrate a Spring application with Quartz Scheduler' and 'How to schedule jobs in Spring using Quartz'. Java supports a number of framework to work with job scheduling, some of the popular and commonly used schedulers are : jcrontab, Fulcrum Scheduler, Essiembre J2EE Scheduler, Gos4j, Oddjob, cron4j and Quartz. These all are good in different scenario, but Quartz is the most commonly and easy to use job scheduler in Java.
+
+Spring provides a number of helping classes to work with quartz and implement it easily on the fly. In spring we can specify quartz jobs in two ways.
+
+1. Using 'MethodInvokingJobDetailFactoryBean'
+2. Using 'JobDetailFactoryBean'(click Here)
+
+In this tutorial we will focus on scheduling jobs in spring using Quartz's MethodInvokingJobDetailFactoryBean method. This is the commonly used and easy to integrate method of scheduling jobs in Spring.
+
+
+ 
+
+Scheduling jobs in Spring using Quartz
+This method is straight forward and easy to use, we just need to specify the time span to run our job periodically and a little configuration. See the code below. 
+
+
+Spring Quartz Dependencies
+We need to add a single dependency in our spring pom.xml and everything is up and ready to use.
+
+\SpringQuartzExample\pom.xml
+view plaincopy to clipboardprint?
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"    
+ xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">    
+ <modelVersion>4.0.0</modelVersion>    
+ <groupId>com.beingjavaguys.java</groupId>    
+ <artifactId>SpringQuartzExample</artifactId>    
+ <packaging>jar</packaging>    
+ <version>1.0-SNAPSHOT</version>    
+ <name>SpringQuartzExample</name>    
+ <url>http://maven.apache.org</url>    
+    
+ <dependencies>    
+    
+  <!-- Spring 3 Dependencies -->    
+  <dependency>    
+   <groupId>org.springframework</groupId>    
+   <artifactId>spring-core</artifactId>    
+   <version>3.2.3.RELEASE</version>    
+  </dependency>    
+    
+  <dependency>    
+   <groupId>org.springframework</groupId>    
+   <artifactId>spring-context-support</artifactId>    
+   <version>3.2.3.RELEASE</version>    
+  </dependency>    
+    
+  <dependency>    
+   <groupId>org.springframework</groupId>    
+   <artifactId>spring-tx</artifactId>    
+   <version>3.2.3.RELEASE</version>    
+  </dependency>    
+    
+    
+  <!-- Quartz Framework Dependencies -->    
+  <dependency>    
+   <groupId>org.quartz-scheduler</groupId>    
+   <artifactId>quartz</artifactId>    
+   <version>2.2.0</version>    
+  </dependency>    
+    
+ </dependencies>    
+    
+ <build>    
+  <plugins>    
+   <plugin>    
+    <groupId>org.apache.maven.plugins</groupId>    
+    <artifactId>maven-compiler-plugin</artifactId>    
+    <version>2.3.2</version>    
+    <configuration>    
+     <source>1.6</source>    
+     <target>1.6</target>    
+    </configuration>    
+   </plugin>    
+  </plugins>    
+ </build>    
+</project>    
+
+
+
+Writing a task class
+This is simple java class containing a method, our job core to be run periodically goes into this method. We have added a print statement  here that will print the current system time every time the job is called.
+
+\src\main\java\com\beingjavaguys\java\MyTask.java
+view plaincopy to clipboardprint?
+package com.beingjavaguys.java;    
+    
+/**  
+ * @author Nagesh Chauhan  
+ *  
+ */    
+import java.util.Calendar;    
+    
+public class MyTask {    
+    
+ public void printCurrentTime() {    
+  // printing current system time    
+  System.out    
+    .println("Current Time : " + Calendar.getInstance().getTime());    
+ }    
+    
+}    
+
+
+
+Spring Quartz configuration.
+In spring-quartz configuration file we just need to specify three been entries, one for the specified task class. One for the trigger to specify repeat time interval and start delay time. And lastly for the 'SchedulerFactoryBean' to bind the executable code and time interval together.
+
+\src\main\resources\spring-quartz.xml
+view plaincopy to clipboardprint?
+<beans xmlns="http://www.springframework.org/schema/beans"    
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"    
+ xsi:schemaLocation="http://www.springframework.org/schema/beans    
+ http://www.springframework.org/schema/beans/spring-beans-3.0.xsd">    
+    
+ <bean id="myTask" class="com.beingjavaguys.java.MyTask" />    
+    
+ <!-- specifing class and method that is going to be called on a specified     
+  time basis -->    
+ <bean id="myJob"    
+  class="org.springframework.scheduling.quartz.MethodInvokingJobDetailFactoryBean">    
+  <property name="targetObject" ref="myTask" />    
+  <property name="targetMethod" value="printCurrentTime" />    
+ </bean>    
+    
+ <!-- Simple Trigger Specify Repeat Interval And Delay Time -->    
+ <bean id="simpleTrigger"    
+  class="org.springframework.scheduling.quartz.SimpleTriggerFactoryBean">    
+  <property name="jobDetail" ref="myJob" />    
+  <property name="repeatInterval" value="5000" />    
+  <property name="startDelay" value="1000" />    
+ </bean>    
+    
+ <!-- scheduler factory bean to bind,the executing code and time intervals     
+  together -->    
+ <bean class="org.springframework.scheduling.quartz.SchedulerFactoryBean">    
+  <property name="jobDetails">    
+   <list>    
+    <ref bean="myJob" />    
+   </list>    
+  </property>    
+  <property name="triggers">    
+   <list>    
+    <ref bean="simpleTrigger" />    
+   </list>    
+  </property>    
+ </bean>    
+    
+</beans>    
+
+
+
+Implementation Class Code
+This is a simple java class containing the main method to start execution, we have initialized a ClassPathXmlApplicationContext object here containing 'spring-quartz' configuration file to start execution.
+
+\src\main\java\com\beingjavaguys\java\App.java
+view plaincopy to clipboardprint?
+package com.beingjavaguys.java;    
+    
+/**  
+ * @author Nagesh Chauhan  
+ *  
+ */    
+import org.springframework.context.support.ClassPathXmlApplicationContext;    
+    
+public class App {    
+ public static void main(String[] args) throws Exception {    
+  new ClassPathXmlApplicationContext("spring-quartz.xml");    
+ }    
+}    
+
+
+
+Thst's it ! We are done with specifying a scheduler job in spring, you will see the following outpup in your console in a specified time interval.
+
+
+
+
+In this particular blog we came across 'Spring Quartz Scheduler Example Project in Maven - Using MethodInvokingJobDetailFactoryBean', in next tutorial we will see 'Spring Quartz Scheduler Example Project in Maven - Using JobDetailFactoryBean' and more about Spring MVC and other opensource technologies.

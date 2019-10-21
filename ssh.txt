@@ -1,0 +1,95 @@
+SSH整合
+
+1.加入spring	
+	1.加入jar包
+	2.配置web.xml
+	3.加入Spring的配置文件
+	
+	
+2.加入hibernate
+	1)同时建立持久化类和.hbm.xml文件 生成对应的数据表
+	2)整合hibernate
+	3)步骤:
+		1.加入jar包
+		2.在类路径下创建hibernate.cfg.xml,在其中配置hibernate的基本属性
+			方言 显示sql 格式化 sql 生成数据表的策略 二级缓存
+		3.建立持久化类和对应的hbm.xml文件 
+			
+		4.和spring进行整合
+			需要加入
+		5.启动项目会看到生成对应的数据表
+		
+3.加入struts2
+	1).加入相关的jar包:若有重复的jar包则需要删除版本较低的
+	2).在web.xml文件中配置struts2的Filter 
+	3).加入struts的配置文件
+	4).整合Spring
+		1.加入struts2的 spring插件的jar包
+		2.在spring的配置文件中正常配置action,注意scope属性prototype
+		3.在struts2的配置文件中配置action时,class属性指向该Action在IOC容器中配置的action bean的id
+		
+		
+4.完成功能
+	1.获取所有的员工信息:
+		若在dao中只查询Employee的信息而且Employee和Department还是使用的lazy=true属性懒加载,页面
+		上还需要显示员工信息，此时页面上将会出现懒加载异常,代理对象不能被初始化
+		解决:
+			1.可以打开懒加载 在
+				<many-to-one lazy="false" name="department" class="com.atguigu.ssh.entities.Department" >
+				
+			2.可以在hql中使用迫切左外连接,同时初始化其管理的department对象
+				String hql = "from Employee  e left join fetch e.department";
+			
+			3.使用一个OpenSessionInViewFilter 在页面加载完毕再关闭session
+			
+	2.删除员工信息:
+			1.正常删除,返回值需要是redirect 类型 而且重定向到emp-list
+			2.确定要删除使用jquery完成
+			3.ajax使用参见
+					
+					public String delete() {
+				
+				System.out.println( "delete ");
+				employeeService.delete(id);
+				
+				System.out.println( "delete ");
+				
+				try {
+					
+					employeeService.delete(id);
+					inputStream = new ByteArrayInputStream( "1".getBytes("utf-8") );
+					
+				} catch (UnsupportedEncodingException e) {
+					// TODO Auto-generated catch block
+					e.printStackTrace();
+					try {
+						inputStream = new ByteArrayInputStream( "2".getBytes("utf-8") );
+					} catch (UnsupportedEncodingException e1) {
+						// TODO Auto-generated catch block
+						e1.printStackTrace();
+					}
+				} 
+				
+				return "delete";
+				
+			}	
+			
+			param 也可以同Action中的getter提供
+			
+			<result name="delete" type="stream">
+					<param name="contentType" >test/html</param>
+					<param name="inputName" >inputStream</param>
+			</result>
+			
+		首先说两个问题:
+			文件下在分为两步
+			
+			result的参数类型可以在  struts-default.xml中相关的result节点查看对应类的属性
+			
+	3.添加员工		
+		1.显示表单页面 .需要先查询所有的部门信息
+		2.使用Struts2的ModeleDriver和PrepareAble拦截器
+		3.时间是一个字符串需要转换为一个date类型的对象
+		
+			
+			

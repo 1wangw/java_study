@@ -1,0 +1,637 @@
+返回主页 143401010116
+博客园首页新随笔联系订阅管理
+随笔 - 96  文章 - 0  评论 - 7
+SSM框架集成Redis
+SSM-Spring+SpringMVC+Mybatis框架相信大家都很熟悉了，但是有的时候需要频繁访问数据库中不变或者不经常改变的数据，就会加重数据库的负担，这时我们就会想起Redis
+
+Redis是由C语言编写，高性能的key-value存储系统，常用于缓存不经常变动或者根本不变的数据，Redis高级：https://blog.csdn.net/hjm4702192/article/details/80518856
+
+废话不多说，先练练手再说
+
+安装Redis
+
+这里介绍的window下的安装
+
+1、下载
+
+下载地址：https://github.com/MSOpenTech/redis/releases
+
+下载适合自己系统的zip包，然后解压到想放的地方，我这里直接放在E盘下
+
+Win+R输入cmd 进入E盘，Redis下，哎呀废话不多说了，直接传送http://www.runoob.com/redis/redis-install.html
+
+ 
+
+2、安装+配置
+
+如果每次启动都像上面那样未免太麻烦了，所以我们接下来把它做成服务，这样启动就方便多了。
+
+cmd到redis.windows-service.conf所在目录，执行
+
+ redis-server --service-install redis-windows-conf
+就可以了，接下来我们就可以在Windows任务管理器服务里面找到Redis了，可以右键启动，也可以
+
+cmd 下输入redis-server --service-start启动
+
+ 
+
+接下来配置redis.windows-service.conf，为什么不修改redis.windows.conf呢？
+
+因为Redis服务默认加载的redis.windows-service.conf配置文件
+
+配置文件里面对于初级者需要修改的不多，
+
+复制代码
+1、Redis默认不是以守护进程的方式运行，可以通过该配置项修改，使用yes启用守护进程
+
+    daemonize no
+
+2、当Redis以守护进程方式运行时，Redis默认会把pid写入/var/run/redis.pid文件，可以通过pidfile指定
+
+    pidfile /var/run/redis.pid
+3、设置Redis连接密码，如果配置了连接密码，客户端在连接Redis时需要通过AUTH <password>命令提供密码，默认关闭
+
+    requirepass foobared
+复制代码
+更多配置详见http://www.runoob.com/redis/redis-conf.html
+
+SSM集成Redis
+
+终于到这一步了，废话不多说
+
+首先当然是添加依赖
+
+ 
+
+复制代码
+  <spring.redis.version>1.6.0.RELEASE</spring.redis.version>
+    <jedis.version>2.7.2</jedis.version>
+
+<!-- config redis data and client jar-->
+    <dependency>
+      <groupId>org.springframework.data</groupId>
+      <artifactId>spring-data-redis</artifactId>
+      <version>${spring.redis.version}</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/org.apache.commons/commons-pool2 -->
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-pool2</artifactId>
+      <version>${commons.version}</version>
+    </dependency>
+    <!-- https://mvnrepository.com/artifact/redis.clients/jedis -->
+    <dependency>
+      <groupId>redis.clients</groupId>
+      <artifactId>jedis</artifactId>
+      <version>${jedis.version}</version>
+    </dependency>
+复制代码
+ 
+
+ 
+
+ 
+
+resources目录下新建redis.properties
+
+ 
+
+复制代码
+redis.host=127.0.0.1
+redis.port=6379
+redis.password=960521
+
+redis.maxIdle=300
+redis.maxWaitMillis=1000
+redis.maxTotal=600
+redis.testOnBorrow=true
+redis.testOnReturn=true
+redis.testWhileIdle=true
+redis.blockWhenExhausted=false
+redis.numTestsPerEvictionRun=1024
+redis.timeBetweenEvictionRunsMillis=30000
+redis.minEvictableIdleTimeMillis=1800000
+复制代码
+ 
+
+然后Spring整合Redis，我配置在Spring-Mybatis.xml
+
+复制代码
+<!--扫描redis配置文件-->
+    <context:property-placeholder ignore-unresolvable="true" location="classpath:redis.properties"/>
+ <!--Spring整合Redis-->
+    <!--设置连接池-->
+    <bean id="poolConfig" class="redis.clients.jedis.JedisPoolConfig">
+        <!-- 最大空闲连接数 -->
+        <property name="maxIdle" value="${redis.maxIdle}"/>
+        <!-- 最大连接数 -->
+        <property name="maxTotal" value="${redis.maxTotal}" />
+        <!-- 每次释放连接的最大数目 -->
+        <property name="numTestsPerEvictionRun" value="${redis.numTestsPerEvictionRun}" />
+        <!-- 释放连接的扫描间隔（毫秒） -->
+        <property name="timeBetweenEvictionRunsMillis" value="${redis.timeBetweenEvictionRunsMillis}" />
+        <!-- 连接最小空闲时间 -->
+        <property name="minEvictableIdleTimeMillis" value="${redis.minEvictableIdleTimeMillis}" />
+        <!-- 获取连接时的最大等待毫秒数,小于零:阻塞不确定的时间,默认-1 -->
+        <property name="maxWaitMillis" value="${redis.maxWaitMillis}" />
+        <!-- 在获取连接的时候检查有效性, 默认false -->
+        <property name="testOnBorrow" value="${redis.testOnBorrow}" />
+        <property name="testOnReturn" value="${redis.testOnReturn}" />
+        <!-- 在空闲时检查有效性, 默认false -->
+        <property name="testWhileIdle" value="${redis.testWhileIdle}" />
+        <!-- 连接耗尽时是否阻塞, false报异常,ture阻塞直到超时, 默认true -->
+        <property name="blockWhenExhausted" value="${redis.blockWhenExhausted}" />
+    </bean>
+
+    <!-- jedis客户端单机版 -->
+    <bean id="redisClient" class="redis.clients.jedis.JedisPool">
+        <constructor-arg name="host" value="${redis.host}"></constructor-arg>
+        <constructor-arg name="port" value="${redis.port}"></constructor-arg>
+        <constructor-arg name="password" value="${redis.password}"></constructor-arg>
+        <constructor-arg name="poolConfig" ref="poolConfig"></constructor-arg>
+        <constructor-arg name="timeout" value="100000"></constructor-arg>
+    </bean>
+    <bean id="JedisClient" class="com.smart.redis.JedisClientSingle"/>
+复制代码
+首先创建一个接口，下面很多方法都用不到，标红的是我经常用的
+
+复制代码
+import java.io.File;
+import java.util.List;
+
+public interface JedisClient {
+    String get(String key);
+    String set(String key,String value);
+    public void setList(String key,List<?> value);
+    public List<?> getList(String key);
+    public void setObject(String key,Object o);
+    public Object getObject(String key);
+    public void clear();
+    public Object removeObject(String str);
+    public int getSize();
+    public void setFile(String key,String path);
+    public File getFile(String key);
+
+
+    String hashGet(String key,String value);//获取存储结构为hashMap的类型数据
+    long hset(String hkey,String key, String value);
+    long incr(String key);
+    long expire(String key,int second);
+    long tt1(String key);
+    long del(String key);//删除数据
+    long hashDel(String hkey,String key);
+}
+复制代码
+然后实现类
+
+
+复制代码
+import org.springframework.beans.factory.annotation.Autowired;
+import redis.clients.jedis.Jedis;
+import redis.clients.jedis.JedisPool;
+
+import java.io.File;
+import java.util.List;
+
+public class JedisClientSingle implements JedisClient {
+
+    @Autowired
+    private JedisPool jedisPool;
+
+    @Override
+    public String get(String key) {
+        Jedis jedis = jedisPool.getResource();
+        String str = jedis.get(key);
+        jedis.close();
+        return str;
+    }
+
+    @Override
+    public String set(String key, String value) {
+        Jedis jedis = jedisPool.getResource();
+        String str = jedis.set(key,value);
+        jedis.close();
+        return str;
+    }
+
+    @Override
+    public long hset(String hkey, String key, String value) {
+        Jedis jedis = jedisPool.getResource();
+        Long result = jedis.hset(hkey,key,value);
+        jedis.close();
+        return result;
+    }
+
+    @Override
+    public String hashGet(String key, String value) {
+        Jedis jedis = jedisPool.getResource();
+        String str = jedis.hget(key,value);
+        jedis.close();
+        return str;
+    }
+
+    @Override
+    public long hashDel(String hkey, String key) {
+        return 0;
+    }
+
+    @Override
+    public long tt1(String key) {
+        return 0;
+    }
+
+    @Override
+    public long expire(String key, int second) {
+        Jedis jedis = jedisPool.getResource();
+        Long result = jedis.expire(key,second);
+        jedis.close();
+        return result;
+    }
+
+    @Override
+    public long incr(String key) {
+        return 0;
+    }
+
+    @Override
+    public long del(String key) {
+        Jedis jedis = jedisPool.getResource();
+        Long result = jedis.del(key);
+        jedis.close();
+        return result;
+    }
+
+    @Override
+    public void setList(String key, List<?> list) {
+        Jedis jedis = jedisPool.getResource();
+        try{
+            if(list != null && !list.isEmpty()){
+                jedis.set(key.getBytes(),SerializeUtil.serializeList(list));
+            }else{
+                jedis.set(key.getBytes(), "".getBytes());
+            }
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public List<?> getList(String key) {
+        Jedis jedis = jedisPool.getResource();
+        if(jedis==null || !jedis.exists(key)){
+            return null;
+        }
+        byte[] data = jedis.get(key.getBytes());
+        return SerializeUtil.unSerializeList(data);
+    }
+
+    @Override
+    public void setObject(String key, Object o) {
+        Jedis jedis = jedisPool.getResource();
+        try{
+            o = o == null ? new Object():o;
+            jedis.set(key.getBytes(),SerializeUtil.serializeObject(o));
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    @Override
+    public Object getObject(String key) {
+        Jedis jedis = jedisPool.getResource();
+        if(jedis == null || !jedis.exists(key)){
+            return null;
+        }
+        byte[] data = jedis.get(key.getBytes());
+        return (Object)SerializeUtil.unSerializeObject(data);
+    }
+
+    @Override
+    public void clear() {
+        Jedis jedis = jedisPool.getResource();
+        jedis.flushDB();
+    }
+
+    @Override
+    public Object removeObject(String key) {
+        return jedisPool.getResource().expire(SerializeUtil.serializeObject(key), 0);
+    }
+
+    @Override
+    public int getSize() {
+        return Integer.valueOf(jedisPool.getResource().dbSize().toString());
+    }
+
+    //保存文件方法
+    public void setFile(String key,String path){
+        Jedis jedis = jedisPool.getResource();
+        File fr = new File(path);
+        try{
+            jedis.set(key.getBytes(), SerializeUtil.serializeObject(fr));
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+    }
+
+    //读取文件对象方法
+    public File getFile(String key){
+        Jedis jedis = jedisPool.getResource();
+        File file = (File)SerializeUtil.unSerializeObject(jedis.get(key.getBytes()));
+        return file;
+    }
+}
+复制代码
+由于Redis只能存储5种类的数据，包括String、List、Set、zset和hash，其他的类型则需要序列化之后方可存储
+
+下面这是序列化工具类
+
+
+复制代码
+import java.io.*;
+import java.util.ArrayList;
+import java.util.List;
+
+public class SerializeUtil {
+    /**
+     *
+     * 序列化对象
+     */
+    public static byte[] serializeObject(Object obj) {
+        if(obj == null){
+            return null;
+        }
+        ObjectOutputStream oos = null;
+        ByteArrayOutputStream baos = null;
+        byte[] bytes = null;
+        try {
+            // 序列化
+            baos = new ByteArrayOutputStream();
+            oos = new ObjectOutputStream(baos);
+            oos.writeObject(obj);
+            bytes = baos.toByteArray();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }finally {
+            close(oos);
+            close(baos);
+        }
+        return bytes;
+    }
+
+    /**
+     *
+     * 反序列化
+     *
+     * @param bytes
+     * @return
+     */
+    public static Object unSerializeObject(byte[] bytes) {
+        if(bytes == null){
+            return null;
+        }
+        ByteArrayInputStream bais = null;
+        ObjectInputStream ois = null;
+        try {
+            // 反序列化为对象
+            bais = new ByteArrayInputStream(bytes);
+            ois = new ObjectInputStream(bais);
+            return ois.readObject();
+        } catch (Exception e) {
+            e.printStackTrace();
+        }finally {
+            close(bais);
+            close(ois);
+        }
+        return null;
+    }
+
+    /**
+     *
+     * 序列化
+     */
+    public static byte[] serializeList(List<?> list) {
+        if(list==null || list.isEmpty()){
+            return null;
+        }
+        ObjectOutputStream oos = null;
+        ByteArrayOutputStream baos = null;
+        byte[] bytes = null;
+        try {
+            // 序列化
+            baos = new ByteArrayOutputStream();
+            oos = new ObjectOutputStream(baos);
+            for(Object o : list){
+                oos.writeObject(o);
+            }
+            bytes = baos.toByteArray();
+        } catch (IOException e) {
+            e.printStackTrace();
+        }finally {
+            close(oos);
+            close(baos);
+        }
+        return bytes;
+    }
+
+    /**
+     *
+     * 反序列化
+     *
+     * @param bytes
+     * @return
+     */
+    public static List<?> unSerializeList(byte[] bytes) {
+        if(bytes == null){
+            return null;
+        }
+        List<Object> list = new ArrayList<Object>();
+        ByteArrayInputStream bais = null;
+        ObjectInputStream ois = null;
+        try {
+            // 反序列化为对象
+            bais = new ByteArrayInputStream(bytes);
+            ois = new ObjectInputStream(bais);
+            while (bais.available()>0){
+                Object o = (Object)ois.readObject();
+                if(o == null){
+                    break;
+                }
+                list.add(o);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }finally {
+            close(bais);
+            close(ois);
+        }
+        return list;
+    }
+
+    //关闭IO流对象
+    public static void close(Closeable closeable){
+        if(closeable != null){
+            try{
+                closeable.close();
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+        }
+    }
+
+
+
+}
+复制代码
+至此我们就整合好了，下面测试一下
+
+复制代码
+@Service("userService")
+public class UserServiceImpl implements UserService {
+
+    @Autowired
+    private UserDao userDao;
+//注入
+    @Autowired
+    com.smart.redis.JedisClient JedisClient;
+
+ //判断工号是否已存在
+    public boolean isNumberExist(String geNumber){
+        boolean isSuccess = false;
+        User user = null;
+//先从Redis里取
+        user = (User)JedisClient.getObject(geNumber);
+        if(user==null){
+//如果Redis没有则从数据库里取
+            user = userDao.getUserById(geNumber);
+            if(user!=null){
+//从数据库中取了之后，再存入Redis，以便下次取
+                JedisClient.setObject(geNumber,(Object) user);
+            }
+        }
+
+        if(StringUtils.isEmpty(user)){
+            isSuccess = true;
+        }
+        return isSuccess;
+    }
+}
+复制代码
+ 
+
+标签: Redis
+好文要顶 关注我 收藏该文    
+听见温暖www
+关注 - 6
+粉丝 - 4
++加关注
+0 0
+« 上一篇：SSM集成shiro 致使Controller无法自动注册service
+» 下一篇：Tomcat+Nginx实现动静分离
+posted @ 2018-11-16 09:48 听见温暖www 阅读(142) 评论(0) 编辑 收藏
+刷新评论刷新页面返回顶部
+注册用户登录后才能发表评论，请 登录 或 注册，访问网站首页。
+【推荐】 全源码开放:大型组态\工控\监控电力仿真CAD免费下载2019！
+【推荐】专业便捷的企业级代码托管服务 - Gitee 码云
+
+相关博文：
+· ssm框架下redis的集成
+· ssm集成redis
+· SSM框架下的redis缓存
+· SSM（Maven集成）
+· ssm框架
+
+最新新闻：
+· 美国的“五环外”，是否也会诞生一个“拼多多”？
+· 85后中国女科学家震动硅谷：我用脑电波让衣服变色
+· 知网毛利率高达60%背后：同行吃惊 高校叫苦
+· TCL正在开发五款折叠屏设备，其中有一个可以弯曲成手环
+· 一半产品5年内损坏 《消费者报告》不再推荐戴森手持吸尘器
+» 更多新闻...
+公告
+昵称：听见温暖www
+园龄：2年5个月
+粉丝：4
+关注：6
++加关注
+<	2019年2月	>
+日	一	二	三	四	五	六
+27	28	29	30	31	1	2
+3	4	5	6	7	8	9
+10	11	12	13	14	15	16
+17	18	19	20	21	22	23
+24	25	26	27	28	1	2
+3	4	5	6	7	8	9
+搜索
+
+ 
+
+ 
+常用链接
+我的随笔
+我的评论
+我的参与
+最新评论
+我的标签
+我的标签
+Java(15)
+Spring(14)
+node.js(6)
+Springmvc(4)
+servlet(3)
+中文乱码(3)
+作业(3)
+Javascript(3)
+js(2)
+ajax(2)
+更多
+随笔档案
+2019年1月 (1)
+2018年12月 (2)
+2018年11月 (3)
+2018年10月 (5)
+2018年9月 (1)
+2018年5月 (3)
+2018年4月 (1)
+2018年3月 (6)
+2018年2月 (6)
+2018年1月 (3)
+2017年12月 (15)
+2017年11月 (10)
+2017年10月 (20)
+2017年9月 (4)
+2017年5月 (12)
+2016年11月 (1)
+2016年10月 (2)
+2016年9月 (1)
+积分与排名
+积分 -	35508
+排名 -	15034
+最新评论
+1. Re:SpringMVC配置字符过滤器的两种方式
+@陈先生丶是不是一定要加super.onStartup(servletContext);吗...
+--黄浩#
+2. Re:org.apache.catalina.LifecycleException报错解决方法
+正好解决我的问题
+--风行007
+3. Re:SpringMVC配置字符过滤器的两种方式
+Java配置还有种写法：@Overridepublic void onStartup(ServletContext servletContext) throws ServletException { ......
+--陈先生丶
+4. Re:Maven安装，配置及更改本地资源库
+谢谢分享~
+--APIJDKIDE
+5. Re:js中使用EL表达式
+tip里面要是包含双引号，那怎么办
+--tanloon
+阅读排行榜
+1. tomcat启动报错：Address already in use: JVM_Bind(43769)
+2. org.apache.catalina.LifecycleException报错解决方法(21513)
+3. sublime text3配置node.js环境，以及出现的问题(6236)
+评论排行榜
+1. SpringMVC配置字符过滤器的两种方式(2)
+2. sublime text3配置node.js环境，以及出现的问题(1)
+3. Maven安装，配置及更改本地资源库(1)
+推荐排行榜
+1. tomcat启动报错：Address already in use: JVM_Bind(5)
+2. sublime text3配置node.js环境，以及出现的问题(4)
+3. SpringMVC配置字符过滤器的两种方式(3)
+Copyright ©2019 听见温暖www

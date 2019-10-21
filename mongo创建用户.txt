@@ -1,0 +1,8 @@
+db.createUser( {user: "root",pwd: "Qwer.1234",roles: [ { role: "root", db: "admin" } ]})
+db.createUser( {user: "root",pwd: "Qwer.1234",roles: [ { role: "dbOwner", db: "xattit_db" } ]});
+
+
+
+
+create_time timestamp default current_timestamp comment "创建时间",
+update_time timestamp default current_timestamp on update current_timestamp comment "修改时间",

@@ -1,0 +1,554 @@
+dubbo笔记：
+		
+
+		1、分布式基础理论
+			1.1）、什么是分布式系统？
+			《分布式系统原理与范型》定义：
+			“分布式系统是若干独立计算机的集合，这些计算机对于用户来说就像单个相关系统”
+			分布式系统（distributed system）是建立在网络之上的软件系统。
+			
+			
+		单一应用架构
+				当网站流量很小时，只需一个应用，将所有功能都部署在一起，以减少部署节点和成本。此时，用于简化增删改查工作量的数据访问框架(ORM)是关键。
+				
+				适用于小型网站，小型管理系统，将所有功能都部署到一个功能里，简单易用。
+		缺点： 1、性能扩展比较难 
+			   2、协同开发问题
+			   3、不利于升级维护
+			   
+		垂直应用架构
+				当访问量逐渐增大，单一应用增加机器带来的加速度越来越小，
+				将应用拆成互不相干的几个应用，以提升效率。
+				此时，用于加速前端页面开发的Web框架(MVC)是关键。	 
+
+			通过切分业务来实现各个模块独立部署，降低了维护和部署的难度，团队各司其职更易管理，性能扩展也更方便，更有针对性。
+			缺点： 公用模块无法重复利用，开发性的浪费	
+
+		分布式服务架构
+			当垂直应用越来越多，应用之间交互不可避免，将核心业务抽取出来，作为独立的服务，逐渐形成稳定的服务中心，
+			使前端应用能更快速的响应多变的市场需求。此时，用于提高业务复用及整合的分布式服务框架(RPC)是关键。
+			 
+
+
+随着互联网的发展，网站应用的规模不断扩大，常规的垂直应用架构已无法应对，分布式服务架构以及流动计算架构势在必行，亟需一个治理系统确保架构有条不紊的演进。
+
+	基础知识:
+	dubbo配置:
+	高可用:
+	dubbo原理:
+	
+		安装注册中心:
+			搭建zookeeper环境:
+				1.解压
+				2.直接运行的话会报错 找不到../conf/zoo.cfg
+					直接复制zoo_sample.cfg 为 zoo.cfg 就可以
+					配置文件详解:
+						clientPort=2181 这是zookeeper的端口号 
+						dataDir=../data 指定zookeeper的日志文件路径
+				3.接着使用zkCli.cmd测试zookeeper 
+				
+		安装监控中心:incubator-dubbo-ops-master
+			dubbo 管理控制台:dubbo-admin
+					1.修改J:\视频\尚硅谷Dubbo视频\课件、资料\课件\software\incubator-dubbo-ops-master\dubbo-admin\src\main\resources\application.properties
+						dubbo.registry.address=zookeeper://127.0.0.1:2181
+						
+						
+						server.port=7001
+						spring.velocity.cache=false
+						spring.velocity.charset=UTF-8
+						spring.velocity.layout-url=/templates/default.vm
+						spring.messages.fallback-to-system-locale=false
+						spring.messages.basename=i18n/message
+						spring.root.password=root
+						spring.guest.password=guest
+
+						dubbo.registry.address=zookeeper://127.0.0.1:2181
+
+						修改注册为zookeeper的注册中心
+					2.导入dubbo-admin maven 工程 执行 maven   clean package 命令
+					3.运行打包完成后的jar包 java -jar 
+					4.通过http://localhost:7001 访问  
+					5.登录 账号名 root 密码 root
+					
+					
+					注意管理控制台启动的前提是zookeeper要先启动!!!!!
+					
+					
+			编写服务的提供者:
+			
+					加入jar包
+					 	<!-- 引入dubbo -->
+				<!-- https://mvnrepository.com/artifact/com.alibaba/dubbo -->
+			<dependency>
+				<groupId>com.alibaba</groupId>
+				<artifactId>dubbo</artifactId>
+				<version>2.6.2</version>
+			</dependency>
+				<!-- 注册中心使用的是zookeeper ,引入操作zookeeper的客户端 -->
+					<!-- 引入dubbo -->
+					<dependency>
+						<groupId>com.alibaba</groupId>
+						<artifactId>dubbo</artifactId>
+						<version>2.6.2</version>
+					</dependency>
+				<!-- 由于我们使用zookeeper作为注册中心，所以需要操作zookeeper
+					dubbo 2.6以前的版本引入zkclient操作zookeeper 
+						dubbo 2.6及以后的版本引入curator操作zookeeper
+						下面两个zk客户端根据dubbo版本2选1即可
+					-->
+					<dependency>
+						<groupId>org.apache.curator</groupId>
+						<artifactId>curator-framework</artifactId>
+						<version>2.12.0</version>
+					</dependency>
+			
+				/**
+				 * /**
+				 * 1.将服务提供这注册到注册中心(暴露服务)
+				 * 		1.导入dubbo 依赖(2.6.2)\操作zookeeper的客户端(curator)
+				 * 		2. 配置服务提供者 
+				 * 	
+				 * 2.让服务消费者去注册中心订阅服务提供者的服务地址
+				 * 
+				 * 
+				 * @author Administrator
+				 *
+				 */
+
+				public class UserServiceImpl implements UserService {
+
+
+					@Override
+					public List<UserAddress> getUserAddressList(String userId) {
+						// TODO Auto-generated method stub
+						System.out.println("UserServiceImpl..3.....");
+						UserAddress address1 = new UserAddress(1, "北京市昌平区宏福科技园综合楼3层", "1", "李老师", "010-56253825", "Y");
+						UserAddress address2 = new UserAddress(2, "深圳市宝安区西部硅谷大厦B座3层（深圳分校）", "1", "王老师", "010-56253825", "N");
+
+						return Arrays.asList(address1,address2);
+					}
+
+				}
+			
+			2.
+			
+								<?xml version="1.0" encoding="UTF-8"?>
+					<beans xmlns="http://www.springframework.org/schema/beans"
+						xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+						xmlns:dubbo="http://dubbo.apache.org/schema/dubbo"
+						xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+							http://dubbo.apache.org/schema/dubbo http://dubbo.apache.org/schema/dubbo/dubbo.xsd
+							http://code.alibabatech.com/schema/dubbo http://code.alibabatech.com/schema/dubbo/dubbo.xsd">
+						
+						<!-- 1.指定服务/应用的名字(同样的服务名字相同,不要和别的服务同名) -->
+						<dubbo:application name="user-service-provider"></dubbo:application>
+						
+						<!-- 2.指定注册中心的位置 -->
+						<!-- 
+							<dubbo:registry address="zookeeper://10.20.153.10:2181" />
+						 -->
+						<dubbo:registry protocol="zookeeper" address="127.0.0.1:2181" />
+						
+						<!-- 3.指定通信规则(通信使用的协议)  消费者调用提供者的接口 用那个端口?,那个协议通信?  因为可能由很多的服务所以要写明 -->
+						<!-- 使用dubbo协议在22880端口通信 -->
+						<dubbo:protocol name="dubbo" port="22880"> </dubbo:protocol> 
+						
+						<!-- 4.要将那个服务给暴漏出去   暴露出去那个服务的接口
+							ref:指向服务真正的实现对象
+						-->
+						
+						<dubbo:service interface="com.atguigu.gmall.service.UserService" 
+						ref="userServiceImpl"> </dubbo:service>
+						
+						<!-- 服务的实现  -->
+						<bean id="userServiceImpl" class="com.atguigu.gmall.service.impl.UserServiceImpl"></bean>
+					</beans>
+
+						编写服务消费者:
+									
+								1.加入与上面同样的jar包
+								
+								2.
+								/**
+				 * 1.将服务提供这注册到注册中心(暴露服务)
+				 * 		1.导入dubbo 依赖(2.6.2)\操作zookeeper的客户端(curator)
+				 * 		2. 配置消费者
+				 * 	
+				 * 2.让服务消费者去注册中心订阅服务提供者的服务地址
+				 * 
+				 * 
+				 * @author Administrator
+				 *
+				 */
+				@Service
+				public class OrderServiceImpi implements OrderService {
+					
+					@Autowired
+					UserService userService;
+					
+					@Override
+					public void initOrder(String userId) {
+						
+						System.out.println( "userId:" + userId );
+						
+						//需要查询用户的收回地址
+					   List<UserAddress> addresses =   userService.getUserAddressList(userId); 
+					   
+					   System.out.println( addresses );
+					}
+
+				}
+				
+				
+				3.
+
+				<context:component-scan base-package="com.atguigu.gmall.service.impl"></context:component-scan>
+				
+				<!-- 1.指定服务/应用的名字(同样的服务名字相同,不要和别的服务同名) -->
+				<dubbo:application name="order-service-consumer"></dubbo:application>
+				
+				<!-- 2.指定注册中心的位置 -->
+				<!-- 
+					<dubbo:registry address="zookeeper://10.20.153.10:2181" />
+				 -->
+				<dubbo:registry protocol="zookeeper" address="127.0.0.1:2181" />
+				
+				<!-- 声明需要调用的远程服务接口":生成远程服务的地址 -->
+				<dubbo:reference id="userService" interface="com.atguigu.gmall.service.UserService"></dubbo:reference>	
+							
+							
+			监控中心:
+				1.dubbo-admin
+					图像化的服务管理页面;安装时候需要指定注册中心地址,即可以从注册中心获取到所有的提供者/消费者进行配置管理
+					
+				2.dubbo-monitor-simple
+					简单的监控中心
+					简单的监控中心；
+				1、安装
+				
+				1、下载 dubbo-ops
+				https://github.com/apache/incubator-dubbo-ops 
+				2、修改配置指定注册中心地址
+				进入 dubbo-monitor-simple\src\main\resources\conf
+				修改 dubbo.properties文件  修改注册中心的地址
+
+				3、打包dubbo-monitor-simple
+				mvn clean package -Dmaven.test.skip=true
+				4、解压 tar.gz 文件，并运行start.bat
+
+				如果缺少servlet-api，自行导入servlet-api再访问监控中心
+				
+				5、启动访问8080  http://localhost:8080/
+		
+				6.
+				
+				
+					<!-- 使用监控中心 -->
+				<dubbo:monitor protocol="registry"></dubbo:monitor>		
+				
+				<!--  
+				<dubbo:monitor address="127.0.0.1:7070"></dubbo:monitor>
+				-->
+				
+				
+		使用springbooot整合dubbo:
+		
+				1、引入spring-boot-starter以及dubbo和curator的依赖
+				<dependency>
+					<groupId>com.alibaba.boot</groupId>
+					<artifactId>dubbo-spring-boot-starter</artifactId>
+					<version>0.2.0</version>
+				</dependency>
+				注意starter版本适配：
+			
+			
+			2、配置application.properties
+			提供者配置：
+			dubbo.application.name=gmall-user
+			dubbo.registry.protocol=zookeeper
+			dubbo.registry.address=192.168.67.159:2181
+			dubbo.scan.base-package=com.atguigu.gmall
+			dubbo.protocol.name=dubbo
+			application.name就是服务名，不能跟别的dubbo提供端重复
+			registry.protocol 是指定注册中心协议
+			registry.address 是注册中心的地址加端口号
+			protocol.name 是分布式固定是dubbo,不要改。
+			base-package  注解方式要扫描的包
+			消费者配置：
+			dubbo.application.name=gmall-order-web
+			dubbo.registry.protocol=zookeeper
+			dubbo.registry.address=192.168.67.159:2181
+			dubbo.scan.base-package=com.atguigu.gmall
+			dubbo.protocol.name=dubbo
+			
+			3、dubbo注解
+			@Service、@Reference
+			【如果没有在配置中写dubbo.scan.base-package,还需要使用@EnableDubbo注解】
+			
+			
+		二、dubbo配置：
+		
+				覆盖策略:
+					java  -Ddubbo.protocol.port=2280 优先
+				 xml
+				 
+				 dubbo.properties
+					 JVM 启动 -D 参数优先，这样可以使用户在部署和启动时进行参数重写，比如在启动时需改变协议的端口。
+					XML 次之，如果在 XML 中有配置，则 dubbo.properties 中的相应配置项无效。
+					Properties 最后，相当于缺省值，只有 XML 没有配置时，dubbo.properties 的相应配置项才会生效，通常用于共享公共配置，比如应用名。
+					
+				2、重试次数
+						
+					一般将方法分为幂等和非幂等的操作:
+						希望在幂等方法设置重试次数
+						洗完在非幂等方法上不设置重试次数
+						
+						幂等方法:方法不管运行多少次 返回都是一个结果【查询 删除 修改】同样的请求带同样的参数不论执行多少次 产生的效果都一样的
+						非幂等方法:新增 数据库会执行好多次 新增 操作
+						
+						0代表不重试:
+						
+						
+					失败自动切换，当出现失败，重试其它服务器，但重试会带来更长延迟。可通过 retries="2" 来设置重试次数(不含第一次)。
+					重试次数配置如下：
+					<dubbo:service retries="2" />
+					或
+					<dubbo:reference retries="2" />
+					或
+					<dubbo:reference>
+						<dubbo:method name="findFoo" retries="2" />
+					</dubbo:reference>
+					
+				3.启动时检查
+						Dubbo 缺省会在启动时检查依赖的服务是否可用，不可用时会抛出异常，阻止 Spring 初始化完成，以便上线时，能及早发现问题，默认 check="true"。
+
+						可以通过 check="false" 关闭检查，比如，测试时，有些服务不关心，或者出现了循环依赖，必须有一方先启动。
+
+						另外，如果你的 Spring 容器是懒加载的，或者通过 API 编程延迟引用服务，请关闭 check，否则服务临时不可用时，会抛出异常，拿到 null 引用，如果 check="false"，总是会返回引用，当服务恢复时，能自动连上。
+
+						示例
+						通过 spring 配置文件
+						关闭某个服务的启动时检查 (没有提供者时报错)：
+
+						<dubbo:reference interface="com.foo.BarService" check="false" />
+						关闭所有服务的启动时检查 (没有提供者时报错)：
+
+						<dubbo:consumer check="false" />
+						关闭注册中心启动时检查 (注册订阅失败时报错)：
+
+						<dubbo:registry check="false" />
+						通过 dubbo.properties
+						dubbo.reference.com.foo.BarService.check=false
+						dubbo.reference.check=false
+						dubbo.consumer.check=false
+						dubbo.registry.check=false
+						通过 -D 参数
+						java -Ddubbo.reference.com.foo.BarService.check=false
+						java -Ddubbo.reference.check=false
+						java -Ddubbo.consumer.check=false 
+						java -Ddubbo.registry.check=false
+						配置的含义
+						dubbo.reference.check=false，强制改变所有 reference 的 check 值，就算配置中有声明，也会被覆盖。
+
+						dubbo.consumer.check=false，是设置 check 的缺省值，如果配置中有显式的声明，如：<dubbo:reference check="true"/>，不会受影响。
+
+						dubbo.registry.check=false，前面两个都是指订阅成功，但提供者列表是否为空是否报错，如果注册订阅失败时，也允许启动，需使用此选项，将在后台定时重试。
+						
+						 配置当前消费者的统一规则:所有的服务都不检查
+						<dubbo:consumer check="false" />
+						根据接口设置
+						<dubbo:reference id="orderService" interface="com.ttit.tupaymgmt.manager.service.OrderService" retries="0" check="false" init="true"></dubbo:reference>
+						
+						dubbo:consumer
+						服务消费者缺省值配置。配置类： org.apache.dubbo.config.ConsumerConfig 。同时该标签为 <dubbo:reference> 标签的缺省值设置。
+						
+						
+						关闭注册中心启动时检查 (注册订阅失败时报错)：
+
+						<dubbo:registry check="false" />
+						
+						
+						
+						
+
+						属性	对应URL参数	类型	是否必填	缺省值	作用	描述	兼容性
+						timeout	default.timeout	int	可选	1000	性能调优	远程服务调用超时时间(毫秒)	1.0.16以上版本
+						retries	default.retries	int	可选	2	性能调优	远程服务调用重试次数，不包括第一次调用，不需要重试请设为0	1.0.16以上版本
+						loadbalance	default.loadbalance	string	可选	random	性能调优	负载均衡策略，可选值：random,roundrobin,leastactive，分别表示：随机，轮询，最少活跃调用	1.0.16以上版本
+						async	default.async	boolean	可选	false	性能调优	是否缺省异步执行，不可靠异步，只是忽略返回值，不阻塞执行线程	2.0.0以上版本
+						connections	default.connections	int	可选	100	性能调优	每个服务对每个提供者的最大连接数，rmi、http、hessian等短连接协议支持此配置，dubbo协议长连接不支持此配置	1.0.16以上版本
+						generic	generic	boolean	可选	false	服务治理	是否缺省泛化接口，如果为泛化接口，将返回GenericService	2.0.0以上版本
+						check	check	boolean	可选	true	服务治理	启动时检查提供者是否存在，true报错，false忽略	1.0.16以上版本
+						proxy	proxy	string	可选	javassist	性能调优	生成动态代理方式，可选：jdk/javassist	2.0.5以上版本
+						owner	owner	string	可选		服务治理	调用服务负责人，用于服务治理，请填写负责人公司邮箱前缀	2.0.5以上版本
+						actives	default.actives	int	可选	0	性能调优	每服务消费者每服务每方法最大并发调用数	2.0.5以上版本
+						cluster	default.cluster	string	可选	failover	性能调优	集群方式，可选：failover/failfast/failsafe/failback/forking	2.0.5以上版本
+						filter	reference.filter	string	可选		性能调优	服务消费方远程调用过程拦截器名称，多个名称用逗号分隔	2.0.5以上版本
+						listener	invoker.listener	string	可选		性能调优	服务消费方引用服务监听器名称，多个名称用逗号分隔	2.0.5以上版本
+						registry		string	可选	缺省向所有registry注册	配置关联	向指定注册中心注册，在多个注册中心时使用，值为<dubbo:registry>的id属性，多个注册中心ID用逗号分隔，如果不想将该服务注册到任何registry，可将值设为N/A	2.0.5以上版本
+						layer	layer	string	可选		服务治理	服务调用者所在的分层。如：biz、dao、intl:web、china:acton。	2.0.7以上版本
+						init	init	boolean	可选	false	性能调优	是否在afterPropertiesSet()时饥饿初始化引用，否则等到有人注入或引用该实例时再初始化。	2.0.10以上版本
+						cache	cache	string/boolean	可选		服务治理	以调用参数为key，缓存返回结果，可选：lru, threadlocal, jcache等	Dubbo2.1.0及其以上版本支持
+						validation	validation	boolean	可选		服务治理	是否启用JSR303标准注解验证，如果启用，将对方法参数上
+						
+						
+					超时设置:
+						不同粒度配置的覆盖关系
+						以 timeout 为例，下图显示了配置的查找顺序，其它 retries, loadbalance, actives 等类似：
+
+						方法级优先，接口级次之，全局配置再次之。
+						如果级别一样，则消费方优先，提供方次之。
+						其中，服务提供方配置，通过 URL 经由注册中心传递给消费方。
+						
+							3、超时时间
+							由于网络或服务端不可靠，会导致调用出现一种不确定的中间状态（超时）。为了避免超时导致客户端资源（线程）挂起耗尽，必须设置超时时间。
+							1、Dubbo消费端 
+							全局超时配置
+							<dubbo:consumer timeout="5000" />
+
+							指定接口以及特定方法超时配置
+							<dubbo:reference interface="com.foo.BarService" timeout="2000">
+								<dubbo:method name="sayHello" timeout="3000" />
+							</dubbo:reference>
+							2、Dubbo服务端 
+							全局超时配置
+							<dubbo:provider timeout="5000" />
+
+							指定接口以及特定方法超时配置
+							<dubbo:provider interface="com.foo.BarService" timeout="2000">
+								<dubbo:method name="sayHello" timeout="3000" />
+							</dubbo:provider>
+						
+						
+							3、配置原则
+							dubbo推荐在Provider上尽量多配置Consumer端属性：
+							1、作服务的提供者，比服务使用方更清楚服务性能参数，如调用的超时时间，合理的重试次数，等等
+							2、在Provider配置后，Consumer不配置则会使用Provider的配置值，即Provider配置可以作为Consumer的缺省值。否则，Consumer会使用Consumer端的全局设置，这对于Provider不可控的，并且往往是不合理的
+
+							配置的覆盖规则：
+							1) 方法级配置别优于接口级别，即小Scope优先 
+							2) Consumer端配置 优于 Provider配置 优于 全局配置，
+							3) 最后是Dubbo Hard Code的配置值（见配置文档）
+						
+					重试次数:
+						一般和timeout配合使用
+						
+					
+					多版本:
+				
+							当一个接口实现，出现不兼容升级时，可以用版本号过渡，版本号不同的服务相互间不引用。
+							可以按照以下的步骤进行版本迁移：
+							在低压力时间段，先升级一半提供者为新版本
+							再将所有消费者升级为新版本
+							然后将剩下的一半提供者升级为新版本
+							
+							老版本服务提供者配置：
+							<dubbo:service interface="com.foo.BarService" version="1.0.0" />
+
+							新版本服务提供者配置：
+							<dubbo:service interface="com.foo.BarService" version="2.0.0" />
+
+					
+							老版本服务消费者配置：
+							<dubbo:reference id="barService" interface="com.foo.BarService" version="1.0.0" />
+
+							新版本服务消费者配置：
+							<dubbo:reference id="barService" interface="com.foo.BarService" version="2.0.0" />
+
+							如果不需要区分版本，可以按照以下的方式配置：
+							<dubbo:reference id="barService" interface="com.foo.BarService" version="*" />
+							
+					本地存根：
+						
+						
+			springboot整合dubbo的三种方式:
+					1.导入dubbo-start 在application.properties配置属性 使用@Service 暴露服务  使用 @Reference标签引用服务
+						@EnableDubbo 开启注解模式 也可以配置dubbo.scan.base-package=xxx 就不用开启@EnableDubbo了
+					2.	保留dubbo配置文件的方式
+						使用@ImportResource导入资源配置文件
+					
+					3.使用注解api的方式：
+						1.将每一个组件手动创建到容器中
+						
+			
+			三、高可用
+					1、zookeeper宕机与dubbo直连
+						现象：zookeeper注册中心宕机，还可以消费dubbo暴露的服务。
+						原因：
+						健壮性
+						监控中心宕掉不影响使用，只是丢失部分采样数据
+						数据库宕掉后，注册中心仍能通过缓存提供服务列表查询，但不能注册新服务
+						注册中心对等集群，任意一台宕掉后，将自动切换到另一台
+						注册中心全部宕掉后，服务提供者和服务消费者仍能通过本地缓存通讯
+						服务提供者无状态，任意一台宕掉后，不影响使用
+						服务提供者全部宕掉后，服务消费者应用将无法使用，并无限次重连等待服务提供者恢复
+
+						高可用：通过设计，减少系统不能提供服务的时间；
+					
+					dubbo直连:通过@Reference(url="")  直接指向服务提供者的地址
+					
+					
+				2、集群下dubbo负载均衡配置
+					在集群负载均衡时，Dubbo 提供了多种均衡策略，缺省为 random 随机调用。
+					负载均衡策略
+					Random LoadBalance
+					随机，按权重设置随机概率。
+					在一个截面上碰撞的概率高，但调用量越大分布越均匀，而且按概率使用权重后也比较均匀，有利于动态调整提供者权重。
+					RoundRobin LoadBalance
+					轮循，按公约后的权重设置轮循比率。
+					存在慢的提供者累积请求的问题，比如：第二台机器很慢，但没挂，当请求调到第二台时就卡在那，久而久之，所有请求都卡在调到第二台上。
+					LeastActive LoadBalance
+					最少活跃调用数，相同活跃数的随机，活跃数指调用前后计数差。
+					使慢的提供者收到更少请求，因为越慢的提供者的调用前后计数差会越大。
+					ConsistentHash LoadBalance
+					一致性 Hash，相同参数的请求总是发到同一提供者。
+					当某一台提供者挂时，原本发往该提供者的请求，基于虚拟节点，平摊到其它提供者，不会引起剧烈变动。算法参见：http://en.wikipedia.org/wiki/Consistent_hashing
+					缺省只对第一个参数 Hash，如果要修改，请配置 <dubbo:parameter key="hash.arguments" value="0,1" />
+					缺省用 160 份虚拟节点，如果要修改，请配置 <dubbo:parameter key="hash.nodes" value="320" />
+					
+					配置负载均衡  有方法级别的 由消费者级别 的以下是提供者端配置的
+					<dubbo:service interface="com.atguigu.gmall.service.UserService" 
+					ref="userServiceImpl" loadbalance="random"> </dubbo:service>
+					可以通过dubbo-admin 管理控制台  管理各个提供者的权重
+					
+					
+					
+					2、集群容错
+					在集群调用失败时，Dubbo 提供了多种容错方案，缺省为 failover 重试。
+					集群容错模式
+					Failover Cluster
+					失败自动切换，当出现失败，重试其它服务器。通常用于读操作，但重试会带来更长延迟。可通过 retries="2" 来设置重试次数(不含第一次)。
+
+					重试次数配置如下：
+					<dubbo:service retries="2" />
+					或
+					<dubbo:reference retries="2" />
+					或
+					<dubbo:reference>
+						<dubbo:method name="findFoo" retries="2" />
+					</dubbo:reference>
+
+					Failfast Cluster
+					快速失败，只发起一次调用，失败立即报错。通常用于非幂等性的写操作，比如新增记录。
+
+					Failsafe Cluster
+					失败安全，出现异常时，直接忽略。通常用于写入审计日志等操作。
+
+					Failback Cluster
+					失败自动恢复，后台记录失败请求，定时重发。通常用于消息通知操作。
+
+					Forking Cluster
+					并行调用多个服务器，只要一个成功即返回。通常用于实时性要求较高的读操作，但需要浪费更多服务资源。可通过 forks="2" 来设置最大并行数。
+
+					Broadcast Cluster
+					广播调用所有提供者，逐个调用，任意一台报错则报错 [2]。通常用于通知所有提供者更新缓存或日志等本地资源信息。
+
+					集群模式配置
+					按照以下示例在服务提供方和消费方配置集群模式
+					<dubbo:service cluster="failsafe" />
+					或
+					<dubbo:reference cluster="failsafe" />
+										
+										
+					
+					

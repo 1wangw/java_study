@@ -1,0 +1,131 @@
+
+dubbo框架中Main方法运行spring容器
+2017年05月05日 11:56:20 林泽扬 阅读数：15695
+ 版权声明：本文为博主原创文章，未经博主允许不得转载。	https://blog.csdn.net/u013168445/article/details/71194666
+一:运行spring容器的方式有三种
+1：使用tomcat、jetty等servlet容器运行
+
+2：自己写一个Main方法运行
+
+3：使用dubbo框架提供的Main方法运行
+
+前面两种有一定的局限性，很多缺点，具体就不一一列举，有兴趣的同学可以研究一下，今天就给大家讲如何实现第三种方式
+
+二：Main配置详讲
+优点：由框架本身提供，可实现优雅关机
+spring路径存放路径
+  按照dubbo官网解说，要使得Main能正确的启用Spring容器，要求spring配置文件存放至
+classpath*:META-INF/spring/*.xml路径底下
+
+dubbo官方网址 http://dubbo.io/User+Guide-zh.htm
+
+项目结构
+项目是maven项目，框架是spring+mybatis+dubbo
+
+
+
+
+maven配置
+<build>
+    <!--jar包名称-->
+    <finalName>asset-server</finalName>
+    <resources>
+        <!--recources文件夹下的所有文件都打进jar包-->
+        <resource>
+            <targetPath>${project.build.directory}/classes</targetPath>
+            <directory>src/main/resources</directory>
+            <filtering>true</filtering>
+            <includes>
+                <include>**/*.xml</include>
+                <include>**/*.properties</include>
+            </includes>
+        </resource>
+ 
+        <!-- 上文有说过，由于我的applicationContext.xml文件不是在META-INF下，这一段代码的作用就是将 applicationContext.xml文件拷贝到META-INF目录下-->
+        <resource>
+            <targetPath>${project.build.directory}/classes/META-INF/spring</targetPath>
+            <directory>src/main/resources/spring</directory>
+            <filtering>true</filtering>
+            <includes>
+                <include>applicationContext.xml</include>
+            </includes>
+        </resource>
+    </resources>
+ 
+    <pluginManagement>
+        <plugins>
+            <!-- 解决Maven插件在Eclipse内执行了一系列的生命周期引起冲突 -->
+            <plugin>
+                <groupId>org.eclipse.m2e</groupId>
+                <artifactId>lifecycle-mapping</artifactId>
+                <version>1.0.0</version>
+                <configuration>
+                    <lifecycleMappingMetadata>
+                        <pluginExecutions>
+                            <pluginExecution>
+                                <pluginExecutionFilter>
+                                    <groupId>org.apache.maven.plugins</groupId>
+                                    <artifactId>maven-dependency-plugin</artifactId>
+                                    <versionRange>[2.0,)</versionRange>
+                                    <goals>
+                                        <goal>copy-dependencies</goal>
+                                    </goals>
+                                </pluginExecutionFilter>
+                                <action>
+                                    <ignore />
+                                </action>
+                            </pluginExecution>
+                        </pluginExecutions>
+                    </lifecycleMappingMetadata>
+                </configuration>
+            </plugin>
+        </plugins>
+    </pluginManagement>
+    <plugins>
+        <!-- 打包jar文件时，配置manifest文件，加入lib包的jar依赖 -->
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-jar-plugin</artifactId>
+            <configuration>
+                <classesDirectory>target/classes/</classesDirectory>
+                <archive>
+                    <manifest>
+                        <mainClass>com.alibaba.dubbo.container.Main</mainClass>
+                        <!-- 打包时 MANIFEST.MF文件不记录的时间戳版本 -->
+                        <useUniqueVersions>false</useUniqueVersions>
+                        <addClasspath>true</addClasspath>
+                        <classpathPrefix>lib/</classpathPrefix>
+                    </manifest>
+                    <manifestEntries>
+                        <Class-Path>.</Class-Path>
+                    </manifestEntries>
+                </archive>
+            </configuration>
+        </plugin>
+        <plugin>
+            <groupId>org.apache.maven.plugins</groupId>
+            <artifactId>maven-dependency-plugin</artifactId>
+            <executions>
+                <execution>
+                    <id>copy-dependencies</id>
+                    <phase>package</phase>
+                    <goals>
+                        <goal>copy-dependencies</goal>
+                    </goals>
+                    <configuration>
+                        <type>jar</type>
+                        <includeTypes>jar</includeTypes>
+                        <useUniqueVersions>false</useUniqueVersions>
+                        <outputDirectory>
+                            ${project.build.directory}/lib
+                        </outputDirectory>
+                    </configuration>
+                </execution>
+            </executions>
+        </plugin>
+    </plugins>
+</build>
+
+
+运行测试
+1）.在c盘新建文件夹asset-service,将lib文件夹，asset-service.jar放置文件夹（打包完成后可能还有其他文件，我们只需要这两个）

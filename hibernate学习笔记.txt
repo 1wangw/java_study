@@ -1,0 +1,2313 @@
+ORM 思想
+	类 -->表
+	字段-->列
+	对象-->一行数据
+	
+	ORM思想:将关系数据库中表中的记录映射为对象,以对象的形式展开,程序员可以把对数据库的操作转换为对对象的操作
+	
+	ORM采用元数据的方式来描述对象-关系映射细节,元数据通常采用xml格式,并且存放在专门的对象-关系映射文件中
+	描述数据的数据叫做元数据
+
+	ORM API
+	ORM 实现
+	
+	ORM框架是对jdbc的封装
+	
+	学习:对象关系映射文件，学习如何映射	
+		
+	Hibernate:
+			非常优秀、成熟的 ORM 框架。
+			完成对象的持久化操作
+			Hibernate 允许开发者采用面向对象的方式来操作关系数据库。
+			消除那些针对特定数据库厂商的 SQL 代码
+	MyBatis：
+			相比 Hibernate 灵活高，运行速度快
+			开发速度慢，不支持纯粹的面向对象操作，需熟悉sql语
+  			句，并且熟练使用sql语句优化功能 
+	TopLink
+	OJB
+	
+	安装 hibernate 插件
+		Help --> Install New Software...
+		Click Add... 
+		In dialog Add Site dialog, click Archive... 
+		Navigate to hibernatetools-Update-4.1.1.Final_2013-12-08_01-06-33-B605.zip  and click  Open 
+		Clicking OK in the Add Site dialog will bring you back to the dialog 'Install' 
+		Select the Jboss Tools hibernatetools Nightly Build Update Site that has appeared 
+		Click Next  and then Finish 
+		Approve the license 
+		Restart eclipse when that is asked
+		
+	Hibernate 环境搭建
+		  <dependency>
+		    <groupId>org.hibernate</groupId>
+		    <artifactId>hibernate-core</artifactId>
+		    <version>5.4.0.Final</version>
+		</dependency>	
+		
+		<dependency>
+			    <groupId>mysql</groupId>
+			    <artifactId>mysql-connector-java</artifactId>
+			    <version>5.1.45</version>
+		</dependency>
+					
+			
+		Hibernate开发步骤
+			1.创建 Hibernate 配置文件
+			2.创建持久化类
+			3.创建对象-关系映射文件
+			4.通过 Hibernate API 编写访问数据库的代码
+			
+				
+1. 创建持久化 Java 类
+	提供一个无参的构造器:使Hibernate可以使用Constructor.newInstance() 来实例化持久化类
+	
+	提供一个标识属性(identifier property): 通常映射为数据库表的主键字段. 如果没有该属性，一些功能将不起作用，
+	如：Session.saveOrUpdate()
+	
+	为类的持久化类字段声明访问方法(get/set): Hibernate对JavaBeans 风格的属性实行持久化。
+	
+	使用非 final 类: 在运行时生成代理是 Hibernate 的一个重要的功能. 如果持久化类没有实现任何接口,
+	 Hibnernate 使用 CGLIB 生成代理. 如果使用的是 final 类, 则无法生成 CGLIB 代理.
+	 
+	重写 eqauls 和 hashCode 方法: 如果需要把持久化类的实例放到 Set 中(当需要进行关联映射时), 则应该重写这两个方法
+	
+			
+		SessionFactory sessionFactory = null;
+		Configuration configuration = new  Configuration().configure();
+		sessionFactory = configuration.buildSessionFactory();
+		
+		Session session = sessionFactory.openSession();
+		Transaction transaction = session.beginTransaction();
+		
+		//保存
+	    session.save(new News("Java" ,"AtGuGui" , new Date(new java.util.Date().getTime())));
+	    
+	    //获取
+		News news = session.get(News.class, 1 );
+		
+		transaction.commit();
+		session.close();
+		sessionFactory.close();
+		
+		
+	1. 创建持久化 Java 类
+		Hibernate 不要求持久化类继承任何父类或实现接口，这可以保证代码不被污染。这就是Hibernate被称为低侵入式设计的原因
+		
+	2. 创建对象-关系映射文件
+		Hibernate 采用 XML 格式的文件来指定对象和关系数据之间的映射. 在运行时 Hibernate 将根据这个映射文件来生成各种 SQL 语句
+		映射文件的扩展名为 .hbm.xml
+	3. 创建 Hibernate 配置文件
+		Hibernate 从其配置文件中读取和数据库连接的有关信息, 这个文件应该位于应用的 classpath 下.
+		
+	4.通过 Hibernate API 编写访问数据库的代码	
+	
+	Configuration 类
+	
+	Configuration 类负责管理 Hibernate 的配置信息。包括如下内容：
+	Hibernate 运行的底层信息：数据库的URL、用户名、密码、JDBC驱动类，数据库Dialect,数据库连接池等（对应 hibernate.cfg.xml 文件）。
+	持久化类与数据表的映射关系（*.hbm.xml 文件）
+	创建 Configuration 的两种方式
+	1.
+	属性文件（hibernate.properties）:
+	Configuration cfg = new Configuration();
+	Xml文件（hibernate.cfg.xml）
+	Configuration cfg = new Configuration().configure();
+	2.
+	Configuration 的 configure 方法还支持带参数的访问：
+	File file = new File(“simpleit.xml”);
+	Configuration cfg = new Configuration().configure(file);
+	
+	SessionFactory 接口
+	
+	针对单个数据库映射关系经过编译后的内存镜像，是线程安全的。 
+	SessionFactory 对象一旦构造完毕，即被赋予特定的配置信息
+	SessionFactory是生成Session的工厂
+	构造 SessionFactory 很消耗资源，一般情况下一个应用中只初始化一个 SessionFactory 对象。
+	Hibernate4 新增了一个 ServiceRegistry 接口，所有基于 Hibernate 的配置或者服务都必须统一向这个 ServiceRegistry  注册后才能生效
+	Hibernate4 中创建 SessionFactory 的步骤
+	
+	
+	Session 接口
+	
+	Session 是应用程序与数据库之间交互操作的一个单线程对象，是 Hibernate 运作的中心，
+	所有持久化对象必须在 session 的管理下才可以进行持久化操作。此对象的生命周期很短。
+	Session 对象有一个一级缓存，显式执行 flush 之前，所有的持久层操作的数据都缓存在 session 对象处。
+	相当于 JDBC 中的 Connection
+	持久化类与 Session 关联起来后就具有了持久化的能力。
+	
+	Session 类的方法：
+	取得持久化对象的方法： get() load()
+	持久化对象都得保存，更新和删除：save(),update(),saveOrUpdate(),delete()
+	开启事务: beginTransaction().
+	管理 Session 的方法：isOpen(),flush(), clear(), evict(), close()等
+	
+	
+	Transaction(事务)
+	
+	代表一次原子操作，它具有数据库事务的概念。所有持久层都应该在事务管理下进行，即使是只读操作。 
+  	Transaction tx = session.beginTransaction();
+	常用方法:
+	commit():提交相关联的session实例
+	rollback():撤销事务操作
+	wasCommitted():检查事务是否提交
+	
+	
+	Hibernate 配置文件的两个配置项
+	
+	hbm2ddl.auto：该属性可帮助程序员实现正向工程, 即由 java 代码生成数据库脚本, 进而生成具体的表结构. 。取值 create | update | create-drop | validate
+	create : 会根据 .hbm.xml  文件来生成数据表, 但是每次运行都会删除上一次的表 ,重新生成表, 哪怕二次没有任何改变 
+	create-drop : 会根据 .hbm.xml 文件生成表,但是SessionFactory一关闭, 表就自动删除 
+	update : 最常用的属性值，也会根据 .hbm.xml 文件生成表, 但若 .hbm.xml  文件和数据库中对应的数据表的表结构不同, Hiberante  将更新数据表结构，但不会删除已有的行和列 
+	validate : 会和数据库中的表进行比较, 若 .hbm.xml 文件中的列在数据表中不存在，则抛出异常
+	format_sql：是否将 SQL 转化为格式良好的 SQL . 取值 true | false
+	
+	
+	Session 概述
+	
+	Session 接口是 Hibernate 向应用程序提供的操纵数据库的最主要的接口, 它提供了基本的保存, 更新, 删除和加载 Java 对象的方法.
+	Session 具有一个缓存, 位于缓存中的对象称为持久化对象, 它和数据库中的相关记录对应. Session 能够在某些时间点,
+	 按照缓存中对象的变化来执行相关的 SQL 语句, 来同步更新数据库, 这一过程被称为刷新缓存(flush)
+	站在持久化的角度, Hibernate 把对象分为 4 种状态: 持久化状态, 临时状态, 游离状态, 删除状态. 
+	Session 的特定方法能使对象从一个状态转换到另一个状态. 
+	
+	在 Session 接口的实现中包含一系列的 Java 集合, 这些 Java 集合构成了 Session 缓存. 只要 Session 实例没有结束生命周期,
+	 且没有清理缓存，则存放在它缓存中的对象也不会结束生命周期
+	Session 缓存可减少 Hibernate 应用程序访问数据库的频率。
+	
+	以下是操作session缓存的三个方法
+	
+	flush 缓存
+	flush：Session 按照缓存中对象的属性变化来同步更新数据库
+	默认情况下 Session 在以下时间点刷新缓存：
+	显式调用 Session 的 flush() 方法
+	当应用程序调用 Transaction 的 commit（）方法的时, 该方法先 flush ，然后在向数据库提交事务
+	当应用程序执行一些查询(HQL, Criteria)操作时，如果缓存中持久化对象的属性已经发生了变化，会先 flush 缓存，以保证查询结果能够反映持久化对象的最新状态
+	flush 缓存的例外情况: 如果对象使用 native 生成器生成 OID, 那么当调用 Session 的 save() 方法保存对象时, 会立即执行向数据库插入该实体的 insert 语句.
+	commit() 和 flush() 方法的区别：flush 执行一系列 sql 语句，但不提交事务；commit 方法先调用flush() 方法，然后提交事务. 意味着提交事务意味着对数据库操作永久保存下来。
+	
+	flush:使数据库表中的记录和session缓存中的对象状态保持一致,为了保持一致则可能会发送对应的sql语句
+	1.调用Transaction的commit方法中:先调用session的flush方法,再提交事务
+	2.flush方法可能会发送sql语句,不会提交事务
+	3.注意:在未提交事务或显示的调用session.flush()方法之前也有可能会进行flush操作，比如
+		1.执行HQL或者QBC查询,会先进行flush()操作以得到数据表的最新记录(因为在同一个事务当中 为了保证查询到最新的数据)
+		2.若数据的id是由底层数据库使用自增的方式生成的,则在调用save()方法后则会立即发送insert语句,因为save方法后必须保证对象的id的存在的
+	
+	
+	refresh:会强制发送select语句以使session缓存对象的状态和数据表中对应的记录保持一致!
+   		<property name="hibernate.connection.isolation">2</property>
+  			 事务的隔离级别1 读未提交  2 读已经提交 3 可重复读 4 串行化
+  			 
+  	clear: 清理缓存
+			
+		
+	站在持久化的角度, Hibernate 把对象分为 4 种状态: 持久化状态, 临时状态, 游离状态, 删除状态. 
+	Session 的特定方法能使对象从一个状态转换到另一个状态.	 
+				
+	
+	临时对象（Transient）: 
+	*在使用代理主键的情况下, OID 通常为 null
+	不处于 Session 的缓存中
+	在数据库中没有对应的记录
+	
+	
+	持久化对象(也叫”托管”)（Persist）：
+	OID 不为 null
+	位于 Session 缓存中
+	若在数据库中已经有和其对应的记录, 持久化对象和数据库中的相关记录对应
+	Session 在 flush 缓存时, 会根据持久化对象的属性变化, 来同步更新数据库
+	***在同一个 Session 实例的缓存中, 数据库表中的每条记录只对应唯一的持久化对象
+	
+	删除对象(Removed)
+	在数据库中没有和其 OID 对应的记录
+	不再处于 Session 缓存中
+	一般情况下, 应用程序不该再使用被删除的对象
+	
+	
+	游离对象(也叫”脱管”) （Detached）：
+	OID 不为 null
+	*不再处于 Session 缓存中
+	*一般情况需下, 游离对象是由持久化对象转变过来的, 因此在数据库中可能还存在与它对应的记录
+	
+	new 临时对象   调用save() saveOrUpdate() persist() merge() 转换为持久化对象
+	
+	调用持久化对象的evict() close() clear() 使对象变为游离状态  
+	
+	调用游离对象的update() saveOrUpdate() merge()会变为持久化对象
+	
+	调用游离对象或者持久化对象的delete 变为删除对象  可能会被垃圾回收
+	
+	
+	Session 的 save() 方法
+		Session 的 save() 方法使一个临时对象转变为持久化对象
+	Session 的 save() 方法完成以下操作:
+		把 News 对象加入到 Session 缓存中, 使它进入持久化状态
+		选用映射文件指定的标识符生成器, 为持久化对象分配唯一的 OID. 在 使用代理主键的情况下, setId() 方法为 News 对象设置 OID 使无效的.
+		计划执行一条 insert 语句：在 flush 缓存的时候
+
+	Hibernate 通过持久化对象的 OID 来维持它和数据库相关记录的对应关系. 当 News 对象处于持久化状态时, 不允许程序随意修改它的 ID
+	
+	persist() 和 save() 区别：
+	当对一个 OID 不为 Null 的对象执行 save() 方法时, 会把该对象以一个新的 oid 保存到数据库中;  但执行 persist() 方法时会抛出一个异常.
+	
+	
+	Session save() 
+		1.它使一个临时对象变为持久化的对象
+		2.为对象分配id
+		3.在flush缓存的时候会发送一条insert 语句
+		4.在save方法之前设置id是无效的
+		5.持久化对象的id是不能被修改的
+		
+		persist()
+		1.也会执行insert操作
+		2.和save方法的区别是:在调用persist之前如果对象已经有id了则不会执行insert() 会抛出异常
+		
+		
+	Session get() load() 区别:
+		1.执行get方法会立即加载对象,而执行load方法,若不使用该对象则不会立即执行查询操作，而返回一个代理对象
+		get是立即检索  load是延迟检索
+		
+		2.如果在数据库中没有对应的记录 ,且session没有关闭,使用对象的时候 ,则get返回一个null ,load抛出异常
+			(若不适用该对象则没问题,使用就要初始化,初始化就出问题)
+		
+		3.load的方法可能会抛出LazyInitializationException异常
+			当load执行完,session关闭了,导致代理对象无法初始化
+			
+	 Session update()
+	 	1.若更新一个持久化对象,不需要显示的调用的update方法
+	 	    因为在调用Transaction的commit方法时,会先执行session的flush方法
+	 	    
+	 	2.更新一个游离对象需要显示的调用session的update() 方法  ,可以把一个游离对象变为持久化对象  
+	 	
+	 	需要注意的:
+ 	  		1.无论要更新的游离对象和数据库表中的数据是否一致都会发送一个update语句
+	 	  	2.如何能让update方法盲目的发送update语句呢?
+	 	  		在.hbm.xml文件的class节点设置属性 select-before-update=true		
+	 	 	<class name="com.atguigu.hibernate.helloworld.News" table="NEWS" select-before-update="true">
+	 	  	但通常不需要设置该属性,除非和触发器有关系
+	 	  	3.若数据表中没有对应的记录,但还调用了update方法则抛出异常
+	 	    4.当update方法关联一个游离的对象的时候
+	 	    	如果在session的缓存中已经存在了一个有相同OID的持久化对象,会抛出异常
+	 	    	因为在session缓存中不能有两个OID相同的对象
+	 	    
+	 	  
+	 Session saveOrupdate()
+	 	1.同时包含了save和update对象
+	 	2.如果是一个游离对象执行update ,对临时对象执行save
+	 	3.若OID不为null,但数据表中没有对应记录则抛出异常
+	 	
+	 	判断对象是否为临时的标准:
+	 		1.Java对象的OID是否为null
+	 		2.映射文件中为<id>设置了unsaved-value属性 ,并且java对象的OID取值与这个unsaved-value属性值匹配
+	 		<id name="id" type="java.lang.Integer" unsaved-value="10"> 了解
+	 		
+	 Session merge() 用的不多 在jpa中用的比较多  jpa的时候再见
+	 
+     Session delete()		
+	  
+	  	1.可以删除一个持久化或者一个游离对象
+	  	2.可以通过设置hibernate配置文件的
+	  		<property name="hibernate.use_identifier_rollback">true</property>
+	  	使删除对象后,把OID置为null,使其变为临时对象.		
+	  	
+		游离对象总结:就是session缓存中没有 数据库中可能有 id不为空
+		临时对象:new出来的对象 id为空
+		持久化对象:对游离对象调用update,在session缓存中的
+		
+	session evict()
+		从session缓存中将持久化对象移除	
+		
+	
+	通过 Hibernate 调用存储过程 需要转个弯通过jdbc调用
+		Work 接口: 直接通过 JDBC API 来访问数据库的操作
+		Session 的 doWork(Work) 方法用于执行 Work 对象指定的操作, 即调用 Work 对象的 execute() 方法.
+		Session 会把当前使用的数据库连接传递给 execute() 方法.
+		
+	Hibernate 与触发器协同工作
+		
+		Hibernate 与数据库中的触发器协同工作时, 会造成两类问题
+			触发器使 Session 的缓存中的持久化对象与数据库中对应的数据不一致:触发器运行在数据库中, 它执行的操作对 Session 是透明的
+			Session 的 update() 方法盲目地激发触发器: 无论游离对象的属性是否发生变化, 都会执行 update 语句,
+			 而 update 语句会激发数据库中相应的触发器	
+		解决方案:
+			在执行完 Session 的相关操作后, 立即调用 Session 的 flush() 和 refresh() 方法, 迫使 Session 
+				的缓存与数据库同步(refresh() 方法重新从数据库中加载对象)
+				
+			在映射文件的的 <class> 元素中设置 select-before-update 属性: 
+				当 Session 的 update 或 saveOrUpdate() 方法更新一个游离对象时, 会先执行 Select 语句,
+				 获得当前游离对象在数据库中的最新数据, 只有在不一致的情况下才会执行 update 语句
+				 
+	hibernate 配置文件:
+		
+		Hibernate 配置文件主要用于配置数据库连接和 Hibernate 运行时所需的各种属性
+		每个 Hibernate 配置文件对应一个 Configuration 对象
+		Hibernate配置文件可以有两种格式:
+		hibernate.properties
+		hibernate.cfg.xml 	 
+		
+		JDBC 连接属性
+			connection.url：数据库URL 
+			connection.username：数据库用户名
+			connection.password：数据库用户密码 
+			connection.driver_class：数据库JDBC驱动 
+			dialect：配置数据库的方言，根据底层的数据库不同产生不同的 sql 语句，Hibernate 会针对数据库的特性在访问时进行优化
+		
+		C3P0 数据库连接池属性
+			hibernate.c3p0.max_size: 数据库连接池的最大连接数
+			hibernate.c3p0.min_size: 数据库连接池的最小连接数
+			hibernate.c3p0.timeout:   数据库连接池中连接对象在多长时间没有使用过后，就应该被销毁
+			hibernate.c3p0.max_statements:  缓存 Statement 对象的数量
+			hibernate.c3p0.idle_test_period:  表示连接池检测线程多长时间检测一次池内的所有链接对象是否超时.
+			 连接池本身不会把自己从连接池中移除，而是专门有一个线程按照一定的时间间隔来做这件事，
+			 这个线程通过比较连接对象最后一次被使用时间和当前时间的时间差来和 timeout 做对比，进而决定是否销毁这个连接对象。
+			 (当并发量大的时候就会有很多,当并发量小的时候就会需要销毁一些) 
+			hibernate.c3p0.acquire_increment: 当数据库连接池中的连接耗尽时, 同一时刻获取多少个数据库连接
+				 
+		在hibernate 中使用C3P0数据源:
+			
+			1.导入jar包:
+				
+				<dependency>
+    				<groupId>org.hibernate</groupId>
+    				<artifactId>hibernate-c3p0</artifactId>
+    				<version>5.4.0.Final</version>
+				</dependency>
+		
+			2.加入配置:
+				除了加入以上的配置外换需要加入以下配置
+				<property name="hibernate.connection.provider_class">org.hibernate.c3p0.internal.C3P0ConnectionProvider</property>
+				
+				以下两个配置项对于Mysql无效对于Oracle有效
+				
+				hibernate.jdbc.fetch_size：实质是调用 Statement.setFetchSize() 方法设定 JDBC 的 Statement 
+					读取数据的时候每次从数据库中取出的记录条数。
+				
+						例如一次查询1万条记录，对于Oracle的JDBC驱动来说，是不会 1 次性把1万条取出来的，
+						而只会取出 fetchSize 条数，当结果集遍历完了这些记录以后，再去数据库取 fetchSize 条数据。
+						因此大大节省了无谓的内存消耗。Fetch Size设的越大，读数据库的次数越少，速度越快；Fetch Size越小，
+						读数据库的次数越多，速度越慢。Oracle数据库的JDBC驱动默认的Fetch Size = 10，是一个保守的设定，根据测试，
+						当Fetch Size=50时，性能会提升1倍之多，当 fetchSize=100，性能还能继续提升20%，Fetch Size继续增大，
+						性能提升的就不显著了。并不是所有的数据库都支持Fetch Size特性，例如MySQL就不支持
+						
+				
+				hibernate.jdbc.batch_size：设定对数据库进行批量删除，批量更新和批量插入的时候的批次大小
+				
+					类似于设置缓冲区大小的意思。batchSize 越大，批量操作时向数据库发送sql的次数越少，速度就越快。
+					测试结果是当Batch Size=0的时候，使用Hibernate对Oracle数据库删除1万条记录需要25秒，Batch Size = 50的时候，
+					删除仅仅需要5秒！Oracle数据库 batchSize=30 的时候比较合适
+			
+	对象关系映射文件:
+		POJO 类和数据库的映射文件*.hbm.xml
+		1.POJO 类和关系数据库之间的映射可以用一个XML文档来定义。					 
+		2.通过 POJO 类的数据库映射文件，Hibernate可以理解持久化类和数据表之间的对应关系，也可以理解持久化类属性与数据库表列之间的对应关系
+		3.在运行时 Hibernate 将根据这个映射文件来生成各种 SQL 语句
+		4.映射文件的扩展名为 .hbm.xml
+				 
+		映射文件说明
+		
+			hibernate-mapping
+				类层次：class
+				主键：id
+				基本类型:property
+				实体引用类: many-to-one  |  one-to-one
+				集合:set | list | map | array
+					one-to-many
+					many-to-many
+				子类:subclass | joined-subclass
+				其它:component | any 等
+				查询语句:query（用来放置查询语句，便于对数据库查询的统一管理和优化）
+				每个Hibernate-mapping中可以同时定义多个类. 但更推荐为每个类都创建一个单独的映射文件
+				
+		
+		指定实体类的包名: 简化配置 加入一个包中有多个实体类的话
+		<hibernate-mapping package="com.atguigu.hibernate.helloworld" >
+				
+	    <class name="News" table="NEWS" select-before-update="true">	
+	    
+				name:指定该持久化类映射的持久化类的类名	
+				dynamic-insert: 若设置为 true, 表示当保存一个对象时,
+				 会动态生成 insert 语句, insert 语句中仅包含所有取值不为 null 的字段. 默认值为 false
+				 
+				dynamic-update: 若设置为 true, 表示当更新一个对象时, 
+				会动态生成 update 语句, update 语句中仅包含所有取值需要更新的字段. 默认值为 false
+				
+				select-before-update:设置 Hibernate 在更新某个持久化对象之前是否需要先执行一次查询. 默认值为 false
+		
+		
+		映射对象标识符
+		
+				1.Hibernate 使用对象标识符(OID) 来建立内存中的对象和数据库表中记录的对应关系. 
+				对象的 OID 和数据表的主键对应. Hibernate 通过标识符生成器来为主键赋值
+				
+				2.Hibernate 推荐在数据表中使用代理主键, 即不具备业务含义的字段. 
+				代理主键通常为整数类型, 因为整数类型比字符串类型要节省更多的数据库空间.
+				
+				3.在对象-关系映射文件中, <id> 元素用来设置对象标识符. <generator> 子元素用来设定标识符生成器.
+				
+				4.Hibernate 提供了标识符生成器接口: IdentifierGenerator, 并提供了各种内置实现
+				
+				
+				generator：设定持久化类设定标识符生成器
+				class: 指定使用的标识符生成器全限定类名或其缩写名
+				
+				<id name="id" type="java.lang.Integer" >
+        			<column name="ID" />
+            		<!-- 指定主鍵的生成方式  ,"native":使用數據庫本地的方式 mysql 自增 orcle 序列-->
+            		<generator class="native" />
+        		</id>
+        		
+        		increment 标识符生成器(适用于测试的范围 )(先从数据库中读取再加一会导致并发问题)
+        		
+        		1.increment 标识符生成器由 Hibernate 以递增的方式为代理主键赋值
+        		2.Hibernate 会先读取 NEWS 表中的主键的最大值, 而接下来向 NEWS 表中插入记录时, 就在 max(id) 的基础上递增, 增量为 1.
+        		
+        		适用范围
+        			由于 increment 生存标识符机制不依赖于底层数据库系统, 因此它适合所有的数据库系统
+        			适用于只有单个 Hibernate 应用进程访问同一个数据库的场合, 在集群	下不推荐使用它
+        			OID 必须为 long, int 或 short 类型, 如果把 OID 定义为 byte 类型, 在运行时会抛出异常
+        			
+				identity 标识符生成器
+					
+					identity 标识符生成器由底层数据库来负责生成标识符, 它要求底层数据库把主键定义为自动增长字段类型
+					
+					适用范围:
+						由于 identity 生成标识符的机制依赖于底层数据库系统, 因此, 要求底层数据库系统必须支持自动增长字段类型. 
+						支持自动增长字段类型的数据库包括: DB2, Mysql, MSSQLServer, Sybase 等
+						
+						OID 必须为 long, int 或 short 类型, 如果把 OID 定义为 byte 类型, 在运行时会抛出异常
+					
+					
+        		sequence 标识符生成器
+        		
+        			sequence  标识符生成器利用底层数据库提供的序列来生成标识符.
+        		
+        			Hibernate 在持久化一个 News 对象时, 先从底层数据库的 news_seq 序列中获得一个唯一的标识号, 再把它作为主键值	
+		
+					适用范围:
+						由于 sequence 生成标识符的机制依赖于底层数据库系统的序列, 因此, 要求底层数据库系统必须支持序列.
+						 支持序列的数据库包括: DB2, Oracle 等
+						OID 必须为 long, int 或 short 类型, 如果把 OID 定义为 byte 类型, 在运行时会抛出异常
+				 
+				 hilo 标识符生成器
+				 	
+				 	hilo 标识符生成器由 Hibernate 按照一种 high/low 算法*生成标识符, 它从数据库的特定表的字段中获取 high 值
+					
+					Hibernate 在持久化一个 News 对象时, 由 Hibernate 负责生成主键值. hilo 标识符生成器在生成标识符时,
+						 需要读取并修改 HI_TABLE 表中的 NEXT_VALUE 值.
+						 
+					适用范围:
+						由于 hilo 生存标识符机制不依赖于底层数据库系统, 因此它适合所有的数据库系统
+						OID 必须为 long, int 或 short 类型, 如果把 OID 定义为 byte 类型, 在运行时会抛出异常
+				
+				
+				(推荐使用)native 标识符生成器依据底层数据库对自动生成标识符的支持能力, 来选择使用 identity, sequence 或 hilo 标识符生成器. 
+				
+					适用范围:
+					由于 native 能根据底层数据库系统的类型, 自动选择合适的标识符生成器, 因此很适合于跨数据库平台开发
+					OID 必须为 long, int 或 short 类型, 如果把 OID 定义为 byte 类型, 在运行时会抛出异常
+					
+				
+			Property:
+			
+				property 元素用于指定类的属性和表的字段的映射
+					
+				name:指定该持久化类的属性的名字
+				column:指定与类的属性映射的表的字段名. 如果没有设置该属性, Hibernate 将直接使用类的属性名作为字段名. 
+				type:指定 Hibernate 映射类型. Hibernate 映射类型是 Java 类型与 SQL 类型的桥梁. 如果没有为某个属性显式设定映射类型, Hibernate 会运用反射机制先识别出持久化类的特定属性的 Java 类型, 然后自动使用与之对应的默认的 Hibernate 映射类型.
+				not-null:若该属性值为 true, 表明不允许为 null, 默认为 false
+				access:指定 Hibernate 的默认的属性访问策略。默认值为 property, 即使用 getter, setter 方法来访问属性. 若指定 field, 则 Hibernate 会忽略 getter/setter 方法, 而通过反射访问成员变量
+				unique: 设置是否为该属性所映射的数据列添加唯一约束.
+				
+				index: 指定一个字符串的索引名称. 当系统需要 Hibernate 自动建表时, 用于为该属性所映射的数据列创建索引, 从而加快该数据列的查询.
+				length: 指定该属性所映射数据列的字段的长度
+				
+				scale: 指定该属性所映射数据列的小数位数, 对 double, float, decimal 等类型的数据列有效.
+				formula：设置一个 SQL 表达式, Hibernate 将根据它来计算出派生属性的值. 
+				
+				派生属性: 并不是持久化类的所有属性都直接和表的字段匹配, 持久化类的有些属性的值必须在运行时通过计算才能得出来, 这种属性称为派生属性
+				使用 formula 属性时
+				formula=“(sql)” 的英文括号不能少
+				sql 表达式中的列名和表名都应该和数据库对应, 而不是和持久化对象的属性对应
+				如果需要在 formula 属性中使用参数, 这直接使用 where cur.id=id 形式, 其中 id 就是参数, 和当前持久化对象的 id 属性对应的列的 id 值将作为参数传入. 
+				
+				update:表示这一列的值是否可以被修改
+				
+				formula:
+				
+		
+	java的时间和日期类型和Hibernate 的映射
+				
+			1.在 Java 中, 代表时间和日期的类型包括: java.util.Date 和 java.util.Calendar. 此外, 
+			在 JDBC API 中还提供了 3 个扩展了 java.util.Date 类的子类: java.sql.Date, java.sql.Time 和 java.sql.Timestamp,
+			这三个类分别和标准 SQL 类型中的 DATE, TIME 和 TIMESTAMP 类型对应
+			
+			
+			2.在标准 SQL 中, DATE 类型表示日期, TIME 类型表示时间, TIMESTAMP 类型表示时间戳, 同时包含日期和时间信息
+			java.util.Date 可以同时对应这三种类型	 因为他是其他三个java类的父类
+			
+			3.如何映射
+				java.util.Date  Date TIME  TIMESTAMP
+				基于，所以在设置持久化类的Date类型时设置为java.util.Date
+				如何把java.util.Date映射为这三个类型DATE, TIME 和 TIMESTAMP ?
+					可以通过property的type属性进行映射	
+					  <property name="date" type="time">
+            				<column name="DATE" />
+        				</property>
+				
+				其中timestamp date time 既不是java类型，也不是标准sql类型而是hibernate 映射类型
+				
+				以下情况下必须显式指定 Hibernate 映射类型
+						一个 Java 类型可能对应多个 Hibernate 映射类型. 
+						例如: 如果持久化类的属性为 java.util.Date 类型, 对应的 Hibernate 映射类型可以是 date,
+						 time 或 timestamp. 此时必须根据对应的数据表的字段的 SQL 类型, 来确定 Hibernate 映射类型. 
+						 如果字段为 DATE 类型, 那么 Hibernate 映射类型为 date; 如果字段为 TIME 类型, 
+						 那么 Hibernate 映射类型为 time; 如果字段为 TIMESTATMP 类型, 那么 Hibernate 映射类型为 timestamp.
+				
+				
+	Java 大对象类型的 Hiberante 映射
+		可以精确指定 sql 类型 :  sql-type属性
+		创建Blob类型
+		Hibernate.getLobCreator(session).createBlob(stream, length)
+		
+	映射组成关系
+	
+		Hibernate 把持久化类的属性分为两种: 
+			值(value)类型: 没有 OID, 不能被单独持久化, 生命周期依赖于所属的持久化类的对象的生命周期
+			实体(entity)类型: 有 OID, 可以被单独持久化, 有独立的生命周期
+			
+			
+			值类型显然无法直接用 property 映射 pay 属性
+			Hibernate 使用 <component> 元素来映射组成关系, 该元素表名 pay 属性是 Worker 类一个组成部分, 在 Hibernate 中称之为组件
+		
+        <component name="pay" class="com.atguigu.hibernate.helloworld.Pay" >
+        	
+        	<property name="mouthlyPay" column="MOUTHLY_PAY"></property>
+        	<property name="yearPay" column="YEAR_PAY"></property>
+        	<property name="vocationWithPay" column="VOCATIONWITH_PAY"></property>
+        </component>
+			
+			
+			<component> 元素还允许有 <parent>子元素，用来表明component类中的一个属性是指向包含它的实体的引用
+        	<parent> 元素指定组件属性所属的整体类
+			name: 整体类在组件类中的属性名
+			
+			<component> 元素来映射组成关系
+			class:设定组成关系属性的类型, 此处表明 pay 属性为 Pay 类型
+			
+			public class Pay {
+		
+			private int mouthlyPay;
+			private int yearPay;
+			private int vocationWithPay;
+			private Work work;
+			}
+			
+			public class Work {
+
+				private Integer id;
+				private String name;
+				private Pay pay;
+			}
+			
+	    <component name="pay" class="com.atguigu.hibernate.helloworld.Pay" >
+        	<parent name="work"/>
+        	<property name="mouthlyPay" column="MOUTHLY_PAY"></property>
+        	<property name="yearPay" column="YEAR_PAY"></property>
+        	<property name="vocationWithPay" column="VOCATIONWITH_PAY"></property>
+        </component>
+    
+    
+ 
+	
+	在博客上补充的内容*******************************
+	
+	Hibernate映射解析——七种映射关系
+  首先我们了解一个名词ORM，全称是（Object Relational Mapping），即对象关系映射。ORM的实现思想就是将关系数据库中表的数据映射成对象，以对象的形式展现，这样开发人员就可以把对数据库的操作转化为对这些对象的操作。Hibernate正是实现了这种思想，达到了方便开发人员以面向对象的思想来实现对数据库的操作。       
+
+        Hibernate在实现ORM功能的时候主要用到的文件有：映射类（*.java）、映射文件（*.hbm.xml）和数据库配置文件（*.properties/*.cfg.xml），它们各自的作用如下。
+
+        映射类（*.java）：它是描述数据库表的结构，表中的字段在类中被描述成属性，将来就可以实现把表中的记录映射成为该类的对象了。
+
+        映射文件（*.hbm.xml）：它是指定数据库表和映射类之间的关系，包括映射类和数据库表的对应关系、表字段和类属性类型的对应关系以及表字段和类属性名称的对应关系等。
+
+        数据库配置文件（*.properties/*.cfg.xml）：它是指定与数据库连接时需要的连接信息，比如连接哪种数据库、登录数据库的用户名、登录密码以及连接字符串等。当然还可以把映射类的地址映射信息放在这里。
+
+        接下来让我们就一起走进Hibernate的七种映射关系：
+
+        1、        单向一对一关联映射（one-to-one）：
+
+        两个对象之间一对的关系，例如：Person（人）-IdCard（身份证）
+
+        有两种策略可以实现一对一的关联映射：
+
+               *主键关联：即让两个对象具有相同的主键值，以表明它们之间的一一对应的关系；数据库表不会有额外的字段来维护它们之间的关系，仅通过表的主键来关联。如下图：
+
+
+
+            例子：单向一对一主键关联例子连接
+
+               *唯一外键关联：外键关联，本来是用于多对一的配置，但是加上唯一的限制之后（采用<many-to-one>标签来映射，指定多的一端unique为true，这样就限制了多的一端的多重性为一），也可以用来表示一对一关联关系，其实它就是多对一的特殊情况。如下图：
+
+
+        例子：单向一对一唯一外键关联例子连接
+
+        注意：因为一对一的主键关联映射扩展性不好，当我们的需要发生改变想要将其变为一对多的时候变无法操作了，所以我们遇到一对一关联的时候经常会采用唯一外键关联来解决问题，而很少使用一对一主键关联。
+
+        2、        单向多对一关联映射（many-to-one）：
+
+       多对一关联映射原理：在多的一端加入一个外键，指向一的一端，如下图：
+
+
+       关键映射代码——在多的一端加入如下标签映射：      
+
+[java] view plaincopy
+<many-to-one name="group" column="groupid"/>  
+       3、         单向一对多关联映射（one-to-many）：
+
+       一对多关联映射和多对一关联映射原理是一致的，都是在多的一端加入一个外键，指向一的一端。如下图（学生和班级）：
+
+
+       注意：它与多对一的区别是维护的关系不同
+
+               *多对一维护的关系是：多指向一的关系，有了此关系，加载多的时候可以将一加载上来
+
+               *一对多维护的关系是：一指向多的关系，有了此关系，在加载一的时候可以将多加载上来
+
+       关键映射代码——在一的一端加入如下标签映射：
+
+ 
+
+[java] view plaincopy
+<set name="students">  
+      <key column="classesid"/>  
+      <one-to-many class="com.hibernate.Student"/>  
+</set>  
+       缺陷：因为多的一端Student不知道Classes的存在（也就是Student没有维护与Classes的关系）所以在保存Student的时候关系字段classesid是为null的，如果将该关系字段设置为非空，则将无法保存数据，常用解决办法是改用双向关联映射，参见6。
+
+       4、         单向多对多映射（many-to-many）：
+
+      多对多关联映射新增加一张表才完成基本映射，如下图：
+
+
+      关键映射代码——可以在User的一端加入如下标签映射：
+
+[java] view plaincopy
+<set name="roles" table="t_user_role">  
+     <key column="user_id"/>  
+     <many-to-many class="com.hibernate.Role" column="role_id"/>  
+</set>  
+        5、         双向一对一关联映射：
+
+        对比单向一对一映射，需要在IdCard加入<one-to-one>标签，它不影响，只影响加载。如下图：
+
+   
+
+       双向一对一主键映射关键映射代码——在IdCard端新加入如下标签映射：       
+
+[java] view plaincopy
+<one-to-one name="person"/>  
+       双向一对一唯一外键映射关键映射代码——在IdCard端新加入如下标签映射：
+
+ 
+
+[java] view plaincopy
+<one-to-one name="person"property-ref="idCard"/>  
+       注意：一对一唯一外键关联双向采用<one-to-one>标签映射，必须指定<one-to-one>标签中的property-ref属性为关系字段的名称
+
+       6、         双向一对多关联映射（非常重要）：
+
+       采用一对多双向关联映射的目的主要是为了主要是为了解决一对多单向关联的缺陷而不是需求驱动的。
+
+       一对多双向关联的映射方式：
+
+              * 在一的一端的集合上采用<key>标签，在多的一端加入一个外键
+
+              * 在多的一端采用<many-to-one>标签
+
+       注意：<key>标签和<many-to-one>标签加入的字段保持一直，否则会产生数据混乱
+
+      关键映射代码：
+
+      在Classes的一端加入如下标签映射：     
+
+[java] view plaincopy
+<set name="students"inverse="true">  
+       <key column="classesid"/>  
+      <one-to-many class="com.hibernate.Student"/>  
+</set>  
+      在Student的一端加入如下标签映射：
+
+[java] view plaincopy
+<many-to-one name="classes" column="classesid"/>  
+      注释：inverse属性
+
+               * inverse属性可以用在一对多和多对多双向关联上，inverse属性默认为false，为false表示本端可以维护关系，
+			   如果inverse为 true，则本端不能维护关系，会交给另一端维护关系，
+			   本端失效。所以一对多关联映射我们通常在多的一端维护关系，让一的一端失效。
+
+              * inverse是控制方向上的反转，只影响存储
+
+      7、         双向多对多关联映射：
+
+      双向的目的就是为了两端都能将对方加载上来，和单向多对多的区别就是双向需要在两端都加入标签映射，需要注意的是：
+
+              * 生成的中间表名称必须一样
+
+              * 生成的中间表中的字段必须一样
+
+        Role（角色）端关键映射代码： 
+
+[java] view plaincopy
+<set name="users" table="t_user_role">  
+       <key column="role_id"/>  
+       <many-to-many class="com.hibernate.User" column="user_id"/>  
+lt;/set>  
+       User（用户）端关键映射代码：         
+
+[java] view plaincopy
+<set name="roles" table="t_user_role">  
+      <key column="user_id"/>  
+      <many-to-many class="com. hibernate.Role" column="role_id"/>  
+lt;/set>  
+       总结：对于上面这七种关联映射中，最重要的就是一对多的映射，因为它更贴近我们的现实生活，
+	   比如：教室和学生就可以是典型的一对多的关系，而我们开发软 件的目的之一就是为了解决一些生活中重复性问题，
+	   把那些重复的问题交给计算机帮助我们完成，从而来提高我们的工作效率。一句话：生活离开不开编程，编程更离不开生活。
+	
+	**********************************
+	
+	    这个是持久化类对象的属性是一个持久化实体    单向一对多在多方的映射文件中进行配置  
+       映射一对多:
+        	在领域模型中, 类与类之间最普遍的关系就是关联关系. 
+        	在 UML 中, 关联是有方向的. 
+        	以 Customer 和 Order 为例： 一个用户能发出多个订单, 而一个订单只能属于一个客户. 从 Order 到 Customer 的关联是多对一关联;'
+       		而从 Customer 到 Order 是一对多关联
+	
+	单向关联
+       	
+        使用<many-to-one>映射多对一的关联关系	
+     	<many-to-one name="customer"  class="com.atguigu.hibernate.helloworld.Customer" >
+        	<column name="CUSTOMER_ID"></column>
+        </many-to-one>
+        name 是多这一端关联的一这一段属性的名字
+        class 一一端属性的对应的类名
+        column:一那一段在多的一段对应的数据表中的外键的名字
+        
+        先执行save操作:先插入customer 再插入Order 3条insert
+    先插入1的一端 再插入n的一端 只有insert 语句
+    
+		session.save(customer);
+        session.save(order1);
+		session.save(order2);
+		
+	先插入order 再插入customer 3条insert  2 条update 
+	 先插入n的一端 再插入1的一端 会多出update 语句
+	//因为在插入多的一端时, 无法确定 1 的一端的外键值. 所以只能等 1 的一端插入后, 再额外发送 UPDATE 语句.
+	//推荐先插入 1 的一端, 后插入 n 的一端
+        session.save(order1);
+		session.save(order2);
+		session.save(customer);
+		
+	
+	//1. 若查询多的一端的一个对象, 则默认情况下, 只查询了多的一端的对象. 而没有查询关联的
+	//1 的那一端的对象!
+	Order order = (Order) session.get(Order.class, 1);
+	System.out.println(order.getOrderName()); 
+	
+	System.out.println(order.getCustomer().getClass().getName());	
+	
+		
+	//2. 在需要使用到关联的对象时, 才发送对应的 SQL 语句. 
+	Customer customer = order.getCustomer();
+	System.out.println(customer.getCustomerName()); 
+	
+	//3. 在查询 Customer 对象时, 由多的一端导航到 1 的一端时, 
+	//若此时 session 已被关闭, 则默认情况下
+	//会发生 LazyInitializationException 异常
+	
+	//4. 获取 Order 对象时, 默认情况下, 其关联的 Customer 对象是一个代理对象!	
+        
+        
+	@Test
+	public void testDelete() {
+	
+		//在不设定级联关系的情况下, 且 1 这一端的对象有 n 的对象在引用, 不能直接删除 1 这一端的对象
+		Customer customer = (Customer) session.get(Customer.class, 1);
+		session.delete(customer); 
+		//Exception executing batch [java.sql.BatchUpdateException:
+		
+	}    
+	
+	
+	2.双向一对多
+		双向 1-n 与 双向 n-1 是完全相同的两种情形
+		
+		域模型:从 Order 到 Customer 的多对一双向关联需要在Order 类中定义一个 Customer 属性,
+		 而在 Customer 类中需定义存放 Order 对象的集合属性
+		
+		   
+        <!-- 映射 1 对多的那个集合属性 -->
+        <!-- set: 映射 set 类型的属性, table: set 中的元素对应的记录放在哪一个数据表中. 该值需要和多对一的多的那个表的名字一致 -->
+        <!-- inverse: 指定由哪一方来维护关联关系. 通常设置为 true, 以指定由多的一端来维护关联关系 -->
+        <!-- cascade 设定级联操作. 开发时不建议设定该属性. 建议使用手工的方式来处理 -->
+        <!-- order-by 在查询时对集合中的元素进行排序, order-by 中使用的是表的字段名, 而不是持久化类的属性名  -->
+        <set name="orders" table="ORDERS" inverse="true" order-by="ORDER_NAME DESC">
+        	<!-- 执行多的表中的外键列的名字 -->
+        	<key column="CUSTOMER_ID"></key>
+        	<!-- 指定映射类型 -->
+        	<one-to-many class="Order"/>
+        </set>
+        
+		Customer customer = session.get( Customer.class , 6 );
+		System.out.println( customer.getOrders() );
+		
+		@Test
+	public void testMany2OneSave(){
+		Customer customer = new Customer();
+		customer.setCustomerName("AA");
+		
+		Order order1 = new Order();
+		order1.setOrderName("ORDER-1");
+		
+		Order order2 = new Order();
+		order2.setOrderName("ORDER-2");
+		
+		//设定关联关系
+		order1.setCustomer(customer);
+		order2.setCustomer(customer);
+		
+		customer.getOrders().add(order1);
+		customer.getOrders().add(order2);
+		
+		//执行  save 操作: 先插入 Customer, 再插入 Order, 3 条 INSERT, 2 条 UPDATE
+		//因为 1 的一端和 n 的一端都维护关联关系. 所以会多出 UPDATE
+		//可以在 1 的一端的 set 节点指定 inverse=true, 来使 1 的一端放弃维护关联关系!
+		//建议设定 set 的 inverse=true, 建议先插入 1 的一端, 后插入多的一端
+		//好处是不会多出 UPDATE 语句
+		session.save(customer);
+		
+//		session.save(order1);
+//		session.save(order2);
+		
+		//先插入 Order, 再插入 Cusomer, 3 条 INSERT, 4 条 UPDATE
+//		session.save(order1);
+//		session.save(order2);
+//		
+//		session.save(customer);
+	}
+	
+	在hibernate中通过对 inverse 属性的来决定是由双向关联的哪一方来维护表和表之间的关系. inverse = false 的为主动方，inverse = true 的为被动方, 由主动方负责维护关联关系
+	在没有设置 inverse=true 的情况下，父子两边都维护父子
+ 	 关系 
+	在 1-n 关系中，将 n 方设为主控方将有助于性能改善(如果要国家元首记住全国人民的名字，不是太可能，但要让全国人民知道国家元首，就容易的多)
+	在 1-N 关系中，若将 1 方设为主控方
+	会额外多出 update 语句。
+	插入数据时无法同时插入外键列，因而无法为外键列添加非空约束
+	Order.hbm.xml  在一的一段set节点设定inverse="true"来使1的一段放弃维护关联关系
+	   <set name="orders" table="ORDERS" inverse="true">
+        	<key column="CUSTOMER_ID"></key>
+        	<one-to-many  class="com.atguigu.hibernate.helloworld.Order" />
+        </set>
+        
+     建议先插入1的一端再插入多的一端
+     需要把集合进行初始化防止出现空指针异常
+    因此声明集合类型时需要使用接口,应为hibernate 返回的是一个自己内置的集合类型  
+    
+  双向一对多的获取:
+  	@Test
+	public void testOne2ManyGet(){
+		//1. 对 n 的一端的集合使用延迟加载
+		Customer customer = (Customer) session.get(Customer.class, 7);
+		System.out.println(customer.getCustomerName()); 
+		//2. 返回的多的一端的集合时 Hibernate 内置的集合类型. 
+		//该类型具有延迟加载和存放代理对象的功能. 
+		System.out.println(customer.getOrders().getClass()); 
+		
+		//session.close();
+		//3. 可能会抛出 LazyInitializationException 异常 
+		
+		System.out.println(customer.getOrders().size()); 
+		
+		//4. 再需要使用集合中元素的时候进行初始化. 
+	}
+	
+	//2. 返回的多的一端的集合时 Hibernate 内置的集合类型. 
+		//该类型具有延迟加载和存放代理对象的功能. 
+		因此声明集合类型时需要使用接口,应为hibernate 返回的是一个自己内置的集合类型
+		
+	cascade 属性 :设定级联操作. 开发时不建议设定该属性. 建议使用手工的方式来处理
+	
+	在对象 – 关系映射文件中, 用于映射持久化类之间关联关系的元素,
+    <set>, <many-to-one> 和 <one-to-one> 都有一个 cascade 属性, 它用于指定如何操纵与当前对象关联的其他对象.
+    
+      order-by 在查询时对集合中的元素进行排序, order-by 中使用的是表的字段名, 而不是持久化类的属性名 
+    
+    <set> 元素有一个 order-by 属性, 如果设置了该属性, 当 Hibernate 通过 select 语句到数据库中检索集合对象时, 利用 order by 子句进行排序
+		order-by 属性中还可以加入 SQL 函数
+    
+	
+	一对一的关联关系:
+		双向的一对一关联关系	
+			分类:1.按照外键映射
+				2.按照主键映射
+				
+		1.按照外键映射
+			
+					
+		@Test
+		public void testSave(){
+			
+			Department department = new Department();
+			department.setDeptName("DEPT-BB");
+			
+			Manager manager = new Manager();
+			manager.setMgrName("MGR-BB");
+			
+			//设定关联关系
+			department.setMgr(manager);
+			manager.setDept(department);
+			
+			//保存操作
+			//建议先保存没有外键列的那个对象. 这样会减少 UPDATE 语句
+			session.save(department);
+			session.save(manager);
+		
+	}
+	
+			<?xml version="1.0"?>
+	<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+	"http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+	<!-- Generated 2019-1-15 14:24:19 by Hibernate Tools 3.5.0.Final -->
+	<hibernate-mapping>
+	    <class name="com.atguigu.hibernate.helloworld.Department" table="DEPARTMENT">
+	    
+	        <id name="deptId" type="java.lang.Integer">
+	            <column name="DEPT_ID" />
+	            <generator class="native" />
+	        </id>
+	        <property name="deptName" type="java.lang.String">
+	            <column name="DEPT_NAME" />
+	        </property>
+	        
+	        	
+	       <many-to-one name="mgr" class="com.atguigu.hibernate.helloworld.Manager">
+	       		<column name="MGR_ID" unique="true"></column>
+	       </many-to-one>
+	    </class>
+	</hibernate-mapping>
+	
+	
+			<?xml version="1.0"?>
+		<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+		"http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+		
+		<hibernate-mapping>
+		
+		    <class name="com.atguigu.hibernate.one2one.foreign.Manager" table="MANAGERS">
+		        
+		        <id name="mgrId" type="java.lang.Integer">
+		            <column name="MGR_ID" />
+		            <generator class="native" />
+		        </id>
+		        
+		        <property name="mgrName" type="java.lang.String">
+		            <column name="MGR_NAME" />
+		        </property>
+		        
+		        <!-- 映射 1-1 的关联关系: 在对应的数据表中已经有外键了, 当前持久化类使用 one-to-one 进行映射 -->
+		        <!-- 
+		        	没有外键的一端需要使用one-to-one元素，该元素使用 property-ref 属性指定使用被关联实体主键以外的字段作为关联字段
+		         -->
+		        <one-to-one name="dept" 
+		        	class="com.atguigu.hibernate.one2one.foreign.Department"
+		        	property-ref="mgr"></one-to-one>
+		        
+		    </class>
+		    
+		</hibernate-mapping>
+
+
+		
+			@Test
+		public void testGet(){
+			//1. 默认情况下对关联属性使用懒加载
+			Department dept = (Department) session.get(Department.class, 1);
+			System.out.println(dept.getDeptName()); 
+			
+			//2. 所以会出现懒加载异常的问题. 
+	//		session.close();
+	//		Manager mgr = dept.getMgr();
+	//		System.out.println(mgr.getClass()); 
+	//		System.out.println(mgr.getMgrName()); 
+			
+			//3. 查询 Manager 对象的连接条件应该是 dept.manager_id = mgr.manager_id
+			//而不应该是 dept.dept_id = mgr.manager_id
+			Manager mgr = dept.getMgr();
+			System.out.println(mgr.getMgrName()); 
+		}
+		
+	@Test
+	public void testGet2(){
+		//在查询没有外键的实体对象时, 使用的左外连接查询, 一并查询出其关联的对象
+		//并已经进行初始化. 
+		Manager mgr = (Manager) session.get(Manager.class, 1);
+		System.out.println(mgr.getMgrName()); 
+		System.out.println(mgr.getDept().getDeptName()); 
+	}
+	
+	
+	
+		
+		2.按照主键映射
+			
+		<?xml version="1.0"?>
+		<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+		"http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+		<hibernate-mapping package="com.atguigu.hibernate.one2one.primary">
+
+    <class name="Department" table="DEPARTMENTS">
+
+        <id name="deptId" type="java.lang.Integer">
+            <column name="DEPT_ID" />
+            <!-- 使用外键的方式来生成当前的主键 -->
+            <generator class="foreign">
+            	<!-- property 属性指定使用当前持久化类的哪一个属性的主键作为外键 -->
+            	<param name="property">mgr</param>
+            </generator>
+        </id>
+        
+        <property name="deptName" type="java.lang.String">
+            <column name="DEPT_NAME" />
+        </property>
+		
+		<!--  
+		采用 foreign 主键生成器策略的一端增加 one-to-one 元素映射关联属性,
+		其 one-to-one 节点还应增加 constrained=true 属性, 以使当前的主键上添加外键约束
+		-->
+		<one-to-one name="mgr" class="Manager" constrained="true"></one-to-one>
+					        
+    </class>
+		</hibernate-mapping>
+		
+		
+		<?xml version="1.0"?>
+	<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+	"http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+	
+	<hibernate-mapping>
+	
+	    <class name="com.atguigu.hibernate.one2one.primary.Manager" table="MANAGERS">
+	   
+	   
+	  
+	        <id name="mgrId" type="java.lang.Integer">
+	            <column name="MGR_ID" />
+	            <generator class="native" />
+	        </id>
+	        
+	        <property name="mgrName" type="java.lang.String">
+	            <column name="MGR_NAME" />
+	        </property>
+	        
+	        <one-to-one name="dept" 
+	        	class="com.atguigu.hibernate.one2one.primary.Department"></one-to-one>
+	        
+	    </class>
+	    
+	</hibernate-mapping>
+	
+	
+	
+	多对多映射关系   
+	
+		1.单向 n-n
+			n-n 的关联必须使用连接表
+			与 1-n 映射类似，必须为 set 集合元素添加 key 子元素，
+			指定 CATEGORIES_ITEMS 表中参照 CATEGORIES 表的外键为 CATEGORIY_ID. 
+			与 1-n 关联映射不同的是，建立 n-n 关联时, 集合中的元素使用 many-to-many. many-to-many 
+			子元素的 class 属性指定 items 集合中存放的是 Item 对象, column 属性指定  CATEGORIES_ITEMS 表中参照 ITEMS 表的外键为 ITEM_ID
+			
+			
+			
+		<hibernate-mapping package="com.atguigu.hibernate.n2n">
+		
+		    <class name="Category" table="CATEGORIES">
+		    
+		        <id name="id" type="java.lang.Integer">
+		            <column name="ID" />
+		            <generator class="native" />
+		        </id>
+		    
+		        <property name="name" type="java.lang.String">
+		            <column name="NAME" />
+		        </property>
+		        
+		        <!-- table: 指定中间表 -->
+		        <set name="items" table="CATEGORIES_ITEMS">
+		            <key>
+		                <column name="C_ID" />
+		            </key>
+		            <!-- 使用 many-to-many 指定多对多的关联关系. column 执行 Set 集合中的持久化类在中间表的外键列的名称  -->
+		            <many-to-many class="Item" column="I_ID"></many-to-many>
+		        </set>
+		        
+		    </class>
+		</hibernate-mapping>
+			
+			
+						<?xml version="1.0"?>
+			<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+			"http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+			
+			<hibernate-mapping>
+			
+			    <class name="com.atguigu.hibernate.n2n.Item" table="ITEMS">
+			        
+			        <id name="id" type="java.lang.Integer">
+			            <column name="ID" />
+			            <generator class="native" />
+			        </id>
+			        
+			        <property name="name" type="java.lang.String">
+			            <column name="NAME" />
+			        </property>
+			        
+			        <set name="categories" table="CATEGORIES_ITEMS" inverse="true">
+			        	<key column="I_ID"></key>
+			        	<many-to-many class="com.atguigu.hibernate.n2n.Category" column="C_ID"></many-to-many>
+			        </set>
+			        
+			    </class>
+			</hibernate-mapping>
+			
+			
+		
+		2.双向 n-n
+			
+			双向 n-n 关联需要两端都使用集合属性
+			双向n-n关联必须使用连接表
+			集合属性应增加 key 子元素用以映射外键列, 集合元素里还应增加many-to-many子元素关联实体类
+			在双向 n-n 关联的两边都需指定连接表的表名及外键列的列名. 两个集合元素 set 的 table 元素的值必须指定，而且必须相同。
+			set元素的两个子元素：key 和 many-to-many 都必须指定 column 属性，其中，key 和 many-to-many 
+			分别指定本持久化类和关联类在连接表中的外键列名，因此两边的 key 与 many-to-many 的column属性交叉相同。也就是说，
+			一边的set元素的key的 cloumn值为a,many-to-many 的 column 为b；则另一边的 set 元素的 key 
+			的 column 值 b,many-to-many的 column 值为 a.  
+			对于双向 n-n 关联, 必须把其中一端的 inverse 设置为 true, 否则两端都维护关联关系可能会造成主键冲突.
+			
+
+	映射继承关系：
+	
+		对于面向对象的程序设计语言而言，继承和多态是两个最基本的概念。Hibernate 的继承映射可以理解持久化类之间的继承关系。
+		例如：人和学生之间的关系。
+		学生继承了人，可以认为学生是一个特殊的人，如果对人进行查询，学生的实例也将被得到
+		
+		Hibernate支持三种继承映射策略：
+		
+			使用 subclass 进行映射：将域模型中的每一个实体对象映射到一个独立的表中，
+				也就是说不用在关系数据模型中考虑域模型中的继承关系和多态。 
+			使用 joined-subclass 进行映射： 对于继承关系中的子类使用同一个表，
+				这就需要在数据库表中增加额外的区分子类类型的字段。 
+			使用  union-subclass 进行映射：域模型中的每个类映射到一个表，
+				通过关系数据模型中的外键来描述表之间的继承关系。这也就相当于按照域模型的结构来建立数据库中的表，
+				并通过外键来建立表之间的继承关系。
+		
+		采用 subclass 元素的继承映射
+				
+			
+			<hibernate-mapping package="com.atguigu.hibernate.subclass">
+			
+			    <class name="Person" table="PERSONS" discriminator-value="PERSON">
+			
+			        <id name="id" type="java.lang.Integer">
+			            <column name="ID" />
+			            <generator class="native" />
+			        </id>
+			        
+			        <!-- 配置辨别者列 -->
+					<discriminator column="TYPE" type="string"></discriminator>
+			
+			        <property name="name" type="java.lang.String">
+			            <column name="NAME" />
+			        </property>
+			        
+			        <property name="age" type="int">
+			            <column name="AGE" />
+			        </property>
+			        
+			        <!-- 映射子类 Student, 使用 subclass 进行映射 -->
+			        <subclass name="Student" discriminator-value="STUDENT">
+			        	<property name="school" type="string" column="SCHOOL"></property>
+			        </subclass>
+			        
+			    </class>
+			</hibernate-mapping>
+			
+			/**
+	 * 缺点:
+	 * 1. 使用了辨别者列.
+	 * 2. 子类独有的字段不能添加非空约束.
+	 * 3. 若继承层次较深, 则数据表的字段也会较多. 
+	 */
+	
+	/**
+	 * 查询:
+	 * 1. 查询父类记录, 只需要查询一张数据表
+	 * 2. 对于子类记录, 也只需要查询一张数据表
+	 */
+	@Test
+	public void testQuery(){
+		List<Person> persons = session.createQuery("FROM Person").list();
+		System.out.println(persons.size()); 
+		
+		List<Student> stus = session.createQuery("FROM Student").list();
+		System.out.println(stus.size()); 
+	}
+	
+	/**
+	 * 插入操作: 
+	 * 1. 对于子类对象只需把记录插入到一张数据表中.
+	 * 2. 辨别者列有 Hibernate 自动维护. 
+	 */
+	@Test
+	public void testSave(){
+		
+		Person person = new Person();
+		person.setAge(11);
+		person.setName("AA");
+		
+		session.save(person);
+		
+		Student stu = new Student();
+		stu.setAge(22);
+		stu.setName("BB");
+		stu.setSchool("ATGUIGU");
+		
+		session.save(stu);
+		
+	}
+	
+			
+			
+		2.采用joined-class
+							
+						<?xml version="1.0"?>
+			<!DOCTYPE hibernate-mapping PUBLIC "-//Hibernate/Hibernate Mapping DTD 3.0//EN"
+			"http://hibernate.sourceforge.net/hibernate-mapping-3.0.dtd">
+			
+			<hibernate-mapping package="com.atguigu.hibernate.joined.subclass">
+			
+			    <class name="Person" table="PERSONS">
+			
+			        <id name="id" type="java.lang.Integer">
+			            <column name="ID" />
+			            <generator class="native" />
+			        </id>
+			        
+			        <property name="name" type="java.lang.String">
+			            <column name="NAME" />
+			        </property>
+			        
+			        <property name="age" type="int">
+			            <column name="AGE" />
+			        </property>
+			        
+			        <joined-subclass name="Student" table="STUDENTS">
+			        	<key column="STUDENT_id"></key>
+			        	<property name="school" type="string" column="SCHOOL"></property>
+			        </joined-subclass>
+			        
+			    </class>
+			</hibernate-mapping>
+			
+							
+				/**
+				 * 优点:
+				 * 1. 不需要使用了辨别者列.
+				 * 2. 子类独有的字段能添加非空约束.
+				 * 3. 没有冗余的字段. 
+				 */
+				
+				/**
+				 * 查询:
+				 * 1. 查询父类记录, 做一个左外连接查询
+				 * 2. 对于子类记录, 做一个内连接查询. 
+				 */
+				@Test
+				public void testQuery(){
+					List<Person> persons = session.createQuery("FROM Person").list();
+					System.out.println(persons.size()); 
+					
+					List<Student> stus = session.createQuery("FROM Student").list();
+					System.out.println(stus.size()); 
+				}
+				
+				/**
+				 * 插入操作: 
+				 * 1. 对于子类对象至少需要插入到两张数据表中. 
+				 */
+				@Test
+				public void testSave(){
+					
+					Person person = new Person();
+					person.setAge(11);
+					person.setName("AA");
+					
+					session.save(person);
+					
+					Student stu = new Student();
+					stu.setAge(22);
+					stu.setName("BB");
+					stu.setSchool("ATGUIGU");
+					
+					session.save(stu);
+					
+				}
+						
+		
+			
+		3.union-subclass
+					
+					<hibernate-mapping package="com.atguigu.hibernate.union.subclass">
+		
+		    <class name="Person" table="PERSONS">
+		
+		        <id name="id" type="java.lang.Integer">
+		            <column name="ID" />
+		            <generator class="hilo" />
+		        </id>
+		        
+		        <property name="name" type="java.lang.String">
+		            <column name="NAME" />
+		        </property>
+		        
+		        <property name="age" type="int">
+		            <column name="AGE" />
+		        </property>
+			
+				<union-subclass name="Student" table="STUDENTS">
+					<property name="school" column="SCHOOL" type="string"></property>
+				</union-subclass>        
+		        
+		    </class>
+		</hibernate-mapping>	
+		
+		/**
+	 * 优点:
+	 * 1. 无需使用辨别者列.
+	 * 2. 子类独有的字段能添加非空约束.
+	 * 
+	 * 缺点:
+	 * 1. 存在冗余的字段
+	 * 2. 若更新父表的字段, 则更新的效率较低
+	 */
+	
+	/**
+	 * 查询:
+	 * 1. 查询父类记录, 需把父表和子表记录汇总到一起再做查询. 性能稍差. 
+	 * 2. 对于子类记录, 也只需要查询一张数据表
+	 */
+	@Test
+	public void testQuery(){
+		List<Person> persons = session.createQuery("FROM Person").list();
+		System.out.println(persons.size()); 
+		
+		List<Student> stus = session.createQuery("FROM Student").list();
+		System.out.println(stus.size()); 
+	}
+	
+	/**
+	 * 插入操作: 
+	 * 1. 对于子类对象只需把记录插入到一张数据表中.
+	 */
+	@Test
+	public void testSave(){
+		
+		Person person = new Person();
+		person.setAge(11);
+		person.setName("AA");
+		
+		session.save(person);
+		
+		Student stu = new Student();
+		stu.setAge(22);
+		stu.setName("BB");
+		stu.setSchool("ATGUIGU");
+		
+		session.save(stu);
+		
+	}	
+	
+	
+	
+	Hibernate 检索策略
+	
+		检索数据时的 2 个问题：
+			1.不浪费内存：当 Hibernate 从数据库中加载 Customer 对象时,
+				 如果同时加载所有关联的 Order 对象, 而程序实际上仅仅需要访问 Customer 对象,
+				  那么这些关联的 Order 对象就白白浪费了许多内存.
+				  
+		    2.更高的查询效率：发送尽可能少的 SQL 语句
+		    	
+		    
+		   类级别的检索策略
+		   1.立即检索: 立即加载检索方法指定的对象
+		   2.延迟检索: 延迟加载检索方法指定的对象。在使用具体的属性时，再进行加载 
+		    	
+		   	类级别的检索策略可以通过 <class> 元素的 lazy 属性进行设置 仅仅会影响load方法
+				如果程序加载一个对象的目的是为了访问它的属性, 可以采取立即检索.
+				如果程序加载一个持久化对象的目的是仅仅为了获得它的引用, 可以采用延迟检索。注意出现懒加载异常
+				
+				无论 <class> 元素的 lazy 属性是 true 还是 false, Session 的 get() 方法及 Query 
+				的 list() 方法在类级别总是使用立即检索策略
+				
+				
+				若 <class> 元素的 lazy 属性为 true 或取默认值, Session 的 load() 方法不会执行查询数据表的 SELECT 语句, 仅返回代理类对象的实例, 该代理类实例有如下特征:
+				由 Hibernate 在运行时采用 CGLIB 工具动态生成
+				Hibernate 创建代理类实例时, 仅初始化其 OID 属性
+				在应用程序第一次访问代理类实例的非 OID 属性时, Hibernate 会初始化代理类实例、
+				
+			一对多和多对多的检索策略、
+				在映射文件中, 用 <set> 元素来配置一对多关联及多对多关联关系. <set> 元素有 lazy 和 fetch 属性
+					lazy: 主要决定 orders 集合被初始化的时机，即到底是在加载 Customer 对象时就被初始化, 
+							还是在程序访问 orders 集合时被初始化
+					
+					fetch: 取值为 “select” 或 “subselect” 时, 
+							决定初始化 orders 的查询语句的形式;  若取值为”join”, 则决定 orders 集合被初始化的时机		
+			
+					若把 fetch 设置为 “join”, lazy 属性将被忽略
+			
+					<set> 元素的 batch-size 属性：用来为延迟检索策略或立即检索策略设定批量检索的数量. 
+					批量检索能减少 SELECT 语句的数目, 提高延迟检索或立即检索的运行性能. 
+					
+					
+						@Test
+			public void testOne2ManyLevelStrategy(){
+				Customer customer = (Customer) session.get(Customer.class, 1);
+				System.out.println(customer.getCustomerName()); 
+				
+				System.out.println(customer.getOrders().size());
+				Order order = new Order();
+				order.setOrderId(1);
+				System.out.println(customer.getOrders().contains(order));
+				
+				Hibernate.initialize(customer.getOrders()); 
+				
+				//---------------set 的 lazy 属性------------------
+				//1. 1-n 或 n-n 的集合属性默认使用懒加载检索策略.
+				//2. 可以通过设置 set 的 lazy 属性来修改默认的检索策略. 默认为 true
+				//并不建议设置为  false. 
+				//3. lazy 还可以设置为 extra. 增强的延迟检索. 该取值会尽可能的延迟集合初始化的时机!
+			}
+			
+			在延迟检索(lazy 属性值为 true) 集合属性时, Hibernate 在以下情况下初始化集合代理类实例 
+			应用程序第一次访问集合属性: iterator(), size(), isEmpty(), contains() 等方法
+			通过 Hibernate.initialize() 静态方法显式初始化
+			
+			增强延迟检索(lazy 属性为 extra): 与 lazy=“true” 类似. 主要区别是增强延迟检索策略能进一步延迟 Customer 对象的 orders 集合代理实例的初始化时机：
+			当程序第一次访问 orders 属性的 iterator() 方法时, 会导致 orders 集合代理类实例的初始化
+			当程序第一次访问 order 属性的 size(), contains() 和 isEmpty() 方法时, Hibernate 不会初始化 orders 集合类的实例, 仅通过特定的 select 语句查询必要的信息, 不会检索所有的 Order 对象
+			
+			
+					
+			@Test
+			public void testSetBatchSize(){
+				List<Customer> customers = session.createQuery("FROM Customer").list();
+				
+				System.out.println(customers.size()); 
+				
+				for(Customer customer: customers){
+					if(customer.getOrders() != null)
+						System.out.println(customer.getOrders().size());
+				}
+				
+				//set 元素的 batch-size 属性: 设定一次初始化 set 集合的数量. 
+			}
+			
+			
+			public void testSetFetch() {
+			
+					List<Customer> customers = session.createQuery("FROM Customer").list();
+					
+					System.out.println(customers.size()); 
+					
+					for(Customer customer: customers){
+						if(customer.getOrders() != null)
+							System.out.println(customer.getOrders().size());
+					}
+					
+					//set 集合的 fetch 属性: 确定初始化 orders 集合的方式. 
+					//1. 默认值为 select. 通过正常的方式来初始化 set 元素
+					//2. 可以取值为 subselect. 通过子查询的方式来初始化所有的 set 集合. 子查询
+					//作为 where 子句的 in 的条件出现, 子查询查询所有 1 的一端的 ID. 此时 lazy 有效.
+					//但 batch-size 失效. 
+					//3. 若取值为 join. 则
+					//3.1 在加载 1 的一端的对象时, 使用迫切左外连接(使用左外链接进行查询, 且把集合属性进行初始化)的方式检索 n 的一端的集合属性
+					//3.2 忽略 lazy 属性.
+					//3.3 HQL 查询忽略 fetch=join 的取值
+			}
+			
+		多对一和一对一关联的检索策略：
+			
+				
+			@Test
+			public void testMany2OneStrategy(){
+		//		Order order = (Order) session.get(Order.class, 1);
+		//		System.out.println(order.getCustomer().getCustomerName()); 
+				
+				List<Order> orders = session.createQuery("FROM Order o").list();
+				for(Order order: orders){
+					if(order.getCustomer() != null){
+						System.out.println(order.getCustomer().getCustomerName()); 
+					}
+				}
+				
+				//1. lazy 取值为 proxy 和 false 分别代表对应对应的属性采用延迟检索和立即检索
+				//2. fetch 取值为 join, 表示使用迫切左外连接的方式初始化 n 关联的 1 的一端的属性
+				//忽略 lazy 属性. 
+				//3. batch-size, 该属性需要设置在 1 那一端的 class 元素中: 
+				//<class name="Customer" table="CUSTOMERS" lazy="true" batch-size="5">
+				//作用: 一次初始化 1 的这一段代理对象的个数. 
+			}
+			
+	
+	
+	Hibernate 的检索方式:
+		Hibernate 提供了以下几种检索对象的方式
+		导航对象图检索方式:  根据已经加载的对象导航到其他对象
+		OID 检索方式:  按照对象的 OID 来检索对象
+	  **HQL 检索方式: 使用面向对象的 HQL 查询语言
+	  **QBC 检索方式: 使用 QBC(Query By Criteria) API 来检索对象. 这种 API 封装了基于字符串形式的查询语句, 提供了更加面向对象的查询接口. 
+		本地 SQL 检索方式: 使用本地数据库的 SQL 查询语句
+		
+		
+		HQL 检索方式包括以下步骤:
+			通过 Session 的 createQuery() 方法创建一个 Query 对象, 它包括一个 HQL 查询语句. HQL 查询语句中可以包含命名参数
+			动态绑定参数
+			调用 Query 相关方法执行查询语句. 
+			
+		Qurey 接口支持方法链编程风格, 它的 setXxx() 方法返回自身实例, 而不是 void 类型	
+		
+		HQL vs SQL:
+			HQL 查询语句是面向对象的, Hibernate 负责解析 HQL 查询语句, 然后根据对象-关系映射文件中的映射信息, 把 HQL 查询语句翻译成相应的 SQL 语句. 
+				HQL 查询语句中的主体是域模型中的类及类的属性
+			SQL 查询语句是与关系数据库绑定在一起的. SQL 查询语句中的主体是数据库表及表的字段
+		
+			
+		package com.atguigu.hibernate.test;
+
+import java.util.List;
+import java.util.Random;
+
+import org.hibernate.Session;
+import org.hibernate.SessionFactory;
+import org.hibernate.Transaction;
+import org.hibernate.cfg.Configuration;
+import org.hibernate.query.Query;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+
+import com.atguigu.hibernate.entities.Department;
+import com.atguigu.hibernate.entities.Employee;
+
+public class HibernateTest {
+
+	private SessionFactory sessionFactory;
+	private Session session;
+	private Transaction transaction;
+	
+	@Test
+	public void test() {
+		
+		Random random = new Random(1000);
+
+		Department department = new Department();
+		department.setName("Depart-"+ 1 );
+		
+		for (int i = 0; i < 107; i++) {
+			
+			
+			
+			Employee employee = new Employee();
+			employee.setEmail("Atguigu@"+i+".com");
+			employee.setName("Employee-" + i);
+			employee.setSalary( random.nextFloat()  + 100 );
+			
+			if ( i % 5 == 0 ) {
+				
+				department = new Department();
+				department.setName("Depart-"+ i );
+			}
+			
+			department.getEmps().add(employee);
+			employee.setDept(department);
+			session.save(employee);
+			session.save(department);
+			
+		}
+	}
+	
+	@Test
+	public void testEntiyHQL() {
+		
+		//创建Query对象
+		//基于命名参数
+		String hql = "from Employee e where e.salary > :sal and e.dept=:dept ";
+		Query query = session.createQuery( hql );
+		
+		//绑定参数
+		//query支持方法链的编程风格
+		
+		Department dept = new Department();
+		dept.setId(1);
+		
+		query.setParameter("sal", 100.1F);
+		query.setParameter("dept", dept );
+		//执行
+		List<Employee> emps =  query.list();
+		System.out.println( emps );
+	}
+
+	@Test
+	public void testNamedHQL() {
+		
+		//创建Query对象
+		//基于命名参数
+		String hql = "from Employee e where e.salary > :sal ";
+		Query query = session.createQuery( hql );
+		
+		//绑定参数
+		//query支持方法链的编程风格
+		query.setParameter("sal", 100.1F);
+		
+		//执行
+		List<Employee> emps =  query.list();
+		System.out.println( emps );
+	}
+	
+	@Test
+	public void testHQL() {
+		
+		//创建Query对象
+		//基于位置的参数
+		String hql = "from Employee e where e.salary > ?1 ";
+		Query query = session.createQuery( hql );
+		
+		//绑定参数
+		//query支持方法链的编程风格
+		query.setParameter(1, 100.1F);
+		
+		//执行
+		List<Employee> emps =  query.list();
+		System.out.println( emps );
+	}
+	
+	@Before
+	public void init() {
+		
+		Configuration configuration = new Configuration().configure();
+		sessionFactory = configuration.buildSessionFactory();
+		session = sessionFactory.openSession();
+		transaction = session.beginTransaction();
+	}
+	
+	/*
+	 * 分页查询
+	 */
+	@Test
+	public void testPageQuery() {
+		
+		String hql = "from Employee e where e.salary > 100.1";
+		Query query = session.createQuery(hql);
+		int pageNo = 12;
+		int pageSize = 5;
+		List<Employee> employees = query.setFirstResult((pageNo - 1) * pageSize ).setMaxResults(5).list();
+		System.out.println( employees );
+	}
+	/**
+	 * 命名查询
+	 * 和class并列
+     * <query name="salaryEmps" > <![CDATA[From Employee e where e.salary > :minSal]]> </query>
+	 */
+	@Test
+	public void testNamedQuery() {
+		
+		Query query = session.getNamedQuery("salaryEmps");
+		List<Employee> employees = query.setParameter("minSal", 100.1F).list();
+		System.out.println( employees );
+	}
+	/*
+	 * 投影查询:查询结果仅包含实体的部分属
+	 *  
+	 * 持久化类中要有对应的构造器
+	 *  
+	 */
+	@Test
+	public void testFieldQuery2() {
+		
+		String hql = "select new Employee( e.email, e.salary ) from Employee e where e.id > :min";
+		Query query = session.createQuery(hql);
+		
+		List<Employee> employees = query.setParameter("min", 10).list();
+		System.out.println( employees);
+		
+	}
+	/**
+	 * 报表查询
+	 * 
+	 */
+	@Test
+	public void testGropBy( ) {
+		
+		String hql = "select min(e.salary) , max(e.salary) from Employee e group by e.dept ";
+		Query query = session.createQuery(hql);
+		List<Object[]> employees = query.list();
+		System.out.println( employees);
+			
+	}
+	
+	
+	@Test
+	public void testFieldQuery() {
+		
+		String hql = "select e.email, e.salary from Employee e where e.id > :min";
+		Query query = session.createQuery(hql);
+		
+		List<Object[]> employees = query.setParameter("min", 10).list();
+		System.out.println( employees);
+		
+	}
+	
+	
+	
+	
+	
+	
+	/**
+	 * 
+	 * 
+	 * 迫切左外连接:
+	    LEFT JOIN FETCH 关键字表示迫切左外连接检索策略.
+	    list() 方法返回的集合中存放实体对象的引用, 每个 Department 对象关联的 Employee  集合都被初始化, 存放所有关联的 Employee 的实体对象. 
+		查询结果中可能会包含重复元素, 可以通过一个 HashSet 来过滤重复元素
+	 * 
+	 */
+	@Test
+	public void testLeftJoinFetch() {
+		
+		//String hql = "select  DISTINCT d from  Department d left join fetch d.emps";
+		String hql = "select  DISTINCT d from  Department d left join fetch d.emps";
+		Query query = session.createQuery(hql);
+		
+		List<Department> departments = query.list();
+
+		for( Department d : departments ) {
+			
+			System.out.println( d.getName() );
+			System.out.println(d.getEmps().size());
+		}
+		
+	}
+	
+	/**
+	 * 左外连接:
+		LEFT JOIN 关键字表示左外连接查询. 
+		list() 方法返回的集合中存放的是对象数组类型
+		根据配置文件来决定 Employee 集合的检索策略. 
+		如果希望 list() 方法返回的集合中仅包含 Department 对象, 可以在HQL 查询语句中使用 SELECT 关键字
+
+	 * 
+	 */
+	@Test
+	public void testLeftJoin() {
+		
+		//String hql = "select  DISTINCT d from  Department d left join fetch d.emps";
+		String hql = "from  Department d left join  d.emps";
+		Query query = session.createQuery(hql);
+		
+		List<Object[]> departments = query.list();
+		
+		
+		for( Object[] d: departments ) {
+			
+			for( Object s : d ) {
+				
+				if ( s instanceof Department ) {
+					
+					Department department = ( Department )s;
+					System.out.println( department.getName() );
+				} else {
+					
+					Employee emp = ( Employee )s;
+					System.out.println( emp.getName());
+				}
+			}
+		}
+		
+	}
+	
+	
+	/**
+	 * 迫切内连接:
+		INNER JOIN FETCH 关键字表示迫切内连接, 也可以省略 INNER 关键字
+		list() 方法返回的集合中存放 Department 对象的引用,
+		 每个 Department 对象的 Employee 集合都被初始化, 存放所有关联的 Employee 对象
+		 
+		 内连接:
+		INNER JOIN 关键字表示内连接, 也可以省略 INNER 关键字
+		list() 方法的集合中存放的每个元素对应查询结果的一条记录, 每个元素都是对象数组类型
+		如果希望 list() 方法的返回的集合仅包含 Department  对象, 可以在 HQL 查询语句中使用 SELECT 关键字	 
+	 */
+	@Test
+	public void testInnerJoinFetch() {
+		
+		//String hql = "select  DISTINCT d from  Department d left join fetch d.emps";
+		String hql = "select  DISTINCT d from  Department d inner join fetch d.emps";
+		Query query = session.createQuery(hql);
+		
+		List<Department> departments = query.list();
+
+		for( Department d : departments ) {
+			
+			System.out.println( d.getName() );
+			System.out.println(d.getEmps().size());
+		}
+		
+	}
+	
+	@Test
+	public void testLeftJoinFetch2() {
+		
+		String hql = "From Employee e left join fetch e.dept";
+		Query query = session.createQuery(hql);
+		
+		List<Employee> emps = query.list();
+		
+		System.out.println(emps );
+	}
+	
+	@After
+	public void  destroy() {
+		
+		transaction.commit();
+		session.close();
+		sessionFactory.close();
+	}
+}
+	
+	QBC 和 本地sql 检索
+				
+		@Test
+	public void testQBC4(){
+		Criteria criteria = session.createCriteria(Employee.class);
+		
+		//1. 添加排序
+		criteria.addOrder(Order.asc("salary"));
+		criteria.addOrder(Order.desc("email"));
+		
+		//2. 添加翻页方法
+		int pageSize = 5;
+		int pageNo = 3;
+		criteria.setFirstResult((pageNo - 1) * pageSize)
+		        .setMaxResults(pageSize)
+		        .list();
+	}
+	
+	@Test
+	public void testQBC3(){
+		Criteria criteria = session.createCriteria(Employee.class);
+		
+		//统计查询: 使用 Projection 来表示: 可以由 Projections 的静态方法得到
+		criteria.setProjection(Projections.max("salary"));
+		
+		System.out.println(criteria.uniqueResult()); 
+	}
+	
+	@Test
+	public void testQBC2(){
+		Criteria criteria = session.createCriteria(Employee.class);
+		
+		//1. AND: 使用 Conjunction 表示
+		//Conjunction 本身就是一个 Criterion 对象
+		//且其中还可以添加 Criterion 对象
+		Conjunction conjunction = Restrictions.conjunction();
+		conjunction.add(Restrictions.like("name", "a", MatchMode.ANYWHERE));
+		Department dept = new Department();
+		dept.setId(80);
+		conjunction.add(Restrictions.eq("dept", dept));
+		System.out.println(conjunction); 
+		
+		//2. OR
+		Disjunction disjunction = Restrictions.disjunction();
+		disjunction.add(Restrictions.ge("salary", 6000F));
+		disjunction.add(Restrictions.isNull("email"));
+		
+		criteria.add(disjunction);
+		criteria.add(conjunction);
+		
+		criteria.list();
+	}
+	
+	@Test
+	public void testQBC(){
+		//1. 创建一个 Criteria 对象
+		Criteria criteria = session.createCriteria(Employee.class);
+		
+		//2. 添加查询条件: 在 QBC 中查询条件使用 Criterion 来表示
+		//Criterion 可以通过 Restrictions 的静态方法得到
+		criteria.add(Restrictions.eq("email", "SKUMAR"));
+		criteria.add(Restrictions.gt("salary", 5000F));
+		
+		//3. 执行查询
+		Employee employee = (Employee) criteria.uniqueResult();
+		System.out.println(employee); 
+	}
+			
+	
+	sql
+		
+	@Test
+	public void testNativeSQL(){
+		String sql = "INSERT INTO gg_department VALUES(?, ?)";
+		Query query = session.createSQLQuery(sql);
+		
+		query.setInteger(0, 280)
+		     .setString(1, "ATGUIGU")
+		     .executeUpdate();
+	}	
+			
+					
+ 	HQL
+	@Test
+	public void testHQLUpdate(){
+		String hql = "DELETE FROM Department d WHERE d.id = :id";
+		
+		session.createQuery(hql).setInteger("id", 280)
+		                        .executeUpdate();
+	}
+	
+	
+	@Test
+	public void testHQLUpdate() {
+		
+		String sql = "INSERT INTO department VALUES(?1, ?2)";
+		Query query = session.createSQLQuery(sql);
+		
+		query.setParameter(1, 281)
+		     .setParameter(2, "ATGUIGU")
+		     .executeUpdate();
+	}
+	
+	
+	Hibernate 的二级缓存:
+	
+	
+	Hibernate中提供了两个级别的缓存
+		第一级别的缓存是 Session 级别的缓存，它是属于事务范围的缓存。这一级别的缓存由 hibernate 管理的
+		第二级别的缓存是 SessionFactory 级别的缓存，它是属于进程范围的缓存
+	
+		
+		SessionFactory 级别的缓存
+			SessionFactory 的缓存可以分为两类:
+			内置缓存: Hibernate 自带的, 不可卸载. 
+				通常在 Hibernate 的初始化阶段, Hibernate 会把映射元数据和预定义的 SQL 语句放到 SessionFactory 的缓存中, 
+				映射元数据是映射文件中数据（.hbm.xml 文件中的数据）的复制. 该内置缓存是只读的. 
+			外置缓存(二级缓存): 一个可配置的缓存插件. 
+				在默认情况下, SessionFactory 不会启用这个缓存插件. 外置缓存中的数据是数据库数据的复制, 
+				外置缓存的物理介质可以是内存或硬盘
+				
+			
+		使用 Hibernate 的二级缓存
+		
+			适合放入二级缓存中的数据:
+				很少被修改
+				不是很重要的数据, 允许出现偶尔的并发问题
+				
+				不适合放入二级缓存中的数据:
+				经常被修改
+				财务数据, 绝对不允许出现并发问题
+				与其他应用程序共享的数据
+					
+		二级缓存的并发访问策略
+			二级缓存可以设定以下 4 种类型的并发访问策略, 每一种访问策略对应一种事务隔离级别
+			
+			非严格读写(Nonstrict-read-write): 不保证缓存与数据库中数据的一致性. 提供 Read Uncommited 事务隔离级别,
+				 对于极少被修改, 而且允许脏读的数据, 可以采用这种策略
+			**读写型(Read-write): 提供 Read Commited 数据隔离级别.对于经常读但是很少被修改的数据,
+				 可以采用这种隔离类型, 因为它可以防止脏读(推荐)
+			
+			事务型(Transactional): 仅在受管理环境下适用. 它提供了 Repeatable Read 事务隔离级别. 
+				对于经常读但是很少被修改的数据, 可以采用这种隔离类型, 因为它可以防止脏读和不可重复读
+				
+			只读型(Read-Only):提供 Serializable 数据隔离级别, 对于从来不会被修改的数据, 可以采用这种访问策略
+		
+		管理 Hibernate 的二级缓存	
+				Hibernate 的二级缓存是进程或集群范围内的缓存
+				二级缓存是可配置的的插件, Hibernate 允许选用以下类型的缓存插件:
+				EHCache: 可作为进程范围内的缓存, 存放数据的物理介质可以使内存或硬盘, 对 Hibernate 的查询缓存提供了支持
+				OpenSymphony OSCache:可作为进程范围内的缓存, 存放数据的物理介质可以使内存或硬盘, 提供了丰富的缓存数据过期策略, 对 Hibernate 的查询缓存提供了支持
+				SwarmCache: 可作为集群范围内的缓存, 但不支持 Hibernate 的查询缓存
+				JBossCache:可作为集群范围内的缓存, 支持 Hibernate 的查询缓存
+				
+		
+		
+		
+		1.
+			<dependency>
+			    <groupId>net.sf.ehcache</groupId>
+			    <artifactId>ehcache</artifactId>
+			    <version>2.10.6</version>
+			</dependency>
+			
+			 
+				<!-- https://mvnrepository.com/artifact/org.hibernate/hibernate-ehcache -->
+			<dependency>
+			    <groupId>org.hibernate</groupId>
+			    <artifactId>hibernate-ehcache</artifactId>
+			    <version>5.4.0.Final</version>
+			</dependency>
+	
+		2.
+		
+    	<!-- 启用二级缓存 -->
+    	<property name="cache.use_second_level_cache">true</property>
+    	<!-- 配置使用的二级缓存的产品 -->
+    	<property name="cache.region.factory_class">org.hibernate.cache.ehcache.internal.EhcacheRegionFactory</property>
+		III. 配置对哪些类使用 hibernate 的二级缓存
+		<class-cache usage="read-write" class="com.atguigu.hibernate.entities.Employee"/>
+		实际上也可以在 .hbm.xml 文件中配置对哪些类使用二级缓存, 及二级缓存的策略是什么. 在class节点下 
+		 <cache usage="read-write"/>
+		
+		3.ehcache.xml
+		
+		//类级别的二级缓存		
+	@Test
+	public void testHibernateSecondLevelCache(){
+		Employee employee = (Employee) session.get(Employee.class, 100);
+		System.out.println(employee.getName()); 
+		
+		transaction.commit();
+		session.close();
+		
+		session = sessionFactory.openSession();
+		transaction = session.beginTransaction();
+		
+		Employee employee2 = (Employee) session.get(Employee.class, 100);
+		System.out.println(employee2.getName()); 
+	}
+	
+	
+		
+		
+		集合级别 的二级缓存
+		
+		2). 集合级别的二级缓存的配置
+			
+			I. 配置对集合使用二级缓存
+
+				<collection-cache usage="read-write" collection="com.atguigu.hibernate.entities.Department.emps"/>
+				也可以在 .hbm.xml 文件中进行配置
+
+				<set name="emps" table="GG_EMPLOYEE" inverse="true" lazy="true">
+					<cache usage="read-write"/>
+				    <key>
+				        <column name="DEPT_ID" />
+				    </key>
+				    <one-to-many class="com.atguigu.hibernate.entities.Employee" />
+				</set>
+				
+				
+			II. 注意: 还需要配置集合中的元素对应的持久化类也使用二级缓存! 否则将会多出 n 条 SQL 语句.
+			
+				<class-cache usage="read-write" class="com.atguigu.hibernate.entities.Employee"/>
+				
+				3). ehcache 的 配置文件: ehcache.xml
+					
+					    <!--  
+			    	指定一个目录：当 EHCache 把数据写到硬盘上时, 将把数据写到这个目录下.
+			    -->     
+			    <diskStore path="d:\\tempDirectory"/>
+						
+				<!--  
+   		设定具体的命名缓存的数据过期策略。每个命名缓存代表一个缓存区域
+   		缓存区域(region)：一个具有名称的缓存块，可以给每一个缓存块设置不同的缓存策略。
+   		如果没有设置任何的缓存区域，则所有被缓存的对象，都将使用默认的缓存策略。即：<defaultCache.../>
+   		Hibernate 在不同的缓存区域保存不同的类/集合。
+			对于类而言，区域的名称是类名。如:com.atguigu.domain.Customer
+			对于集合而言，区域的名称是类名加属性名。如com.atguigu.domain.Customer.orders
+   	-->
+   	<!--  
+   		name: 设置缓存的名字,它的取值为类的全限定名或类的集合的名字 
+		maxElementsInMemory: 设置基于内存的缓存中可存放的对象最大数目 
+		
+		eternal: 设置对象是否为永久的, true表示永不过期,
+		此时将忽略timeToIdleSeconds 和 timeToLiveSeconds属性; 默认值是false 
+		timeToIdleSeconds:设置对象空闲最长时间,以秒为单位, 超过这个时间,对象过期。
+		当对象过期时,EHCache会把它从缓存中清除。如果此值为0,表示对象可以无限期地处于空闲状态。 
+		timeToLiveSeconds:设置对象生存最长时间,超过这个时间,对象过期。
+		如果此值为0,表示对象可以无限期地存在于缓存中. 该属性值必须大于或等于 timeToIdleSeconds 属性值 
+		
+		overflowToDisk:设置基于内存的缓存中的对象数目达到上限后,是否把溢出的对象写到基于硬盘的缓存中 
+		
+				
+		    <cache name="com.atguigu.hibernate.entities.Department.emps"
+		        maxElementsInMemory="1000"
+		        eternal="true"
+		        timeToIdleSeconds="0"
+		        timeToLiveSeconds="0"
+		        overflowToDisk="false"
+		        />
+		
+		</ehcache>
+				
+		
+			
+			4).  查询缓存: 默认情况下, 设置的缓存对 HQL 及 QBC 查询时无效的, 但可以通过以下方式使其是有效的
+			
+			I.  在 hibernate 配置文件中声明开启查询缓存
+			
+			<property name="cache.use_query_cache">true</property>
+			
+			II. 调用 Query 或 Criteria 的 setCacheable(true) 方法
+			
+			III. 查询缓存依赖于二级缓存
+				
+			
+		@Test
+	public void testCollectionSecondLevelCache(){
+		Department dept = (Department) session.get(Department.class, 80);
+		System.out.println(dept.getName());
+		System.out.println(dept.getEmps().size()); 
+		
+		transaction.commit();
+		session.close();
+		
+		session = sessionFactory.openSession();
+		transaction = session.beginTransaction();
+		
+		Department dept2 = (Department) session.get(Department.class, 80);
+		System.out.println(dept2.getName());
+		System.out.println(dept2.getEmps().size()); 
+	}
+	
+	
+	管理 Session
+	
+		Hibernate  自身提供了三种管理 Session 对象的方法
+			Session 对象的生命周期与本地线程绑定
+			Session 对象的生命周期与 JTA 事务绑定
+			Hibernate 委托程序管理 Session 对象的生命周期
+			
+		在 Hibernate 的配置文件中, hibernate.current_session_context_class 属性用于指定 Session 管理方式, 可选值包括
+			thread: Session 对象的生命周期与本地线程绑定
+			jta*: Session 对象的生命周期与 JTA 事务绑定
+			managed: Hibernate 委托程序来管理 Session 对象的生命周期
+		
+		
+		
+		Session 对象的生命周期与本地线程绑定
+			1.如果把 Hibernate 配置文件的 hibernate.current_session_context_class 属性值设为 thread,
+			 Hibernate 就会按照与本地线程绑定的方式来管理 Session
+			 
+			2.Hibernate 按一下规则把 Session 与本地线程绑定
+				当一个线程(threadA)第一次调用 SessionFactory
+				 对象的 getCurrentSession() 方法时, 该方法会创建一个新的 Session(sessionA) 对象, 
+				 把该对象与 threadA 绑定, 并将 sessionA 返回 
+			3.当 threadA 再次调用 SessionFactory 对象的 getCurrentSession() 方法时, 该方法将返回 sessionA 对象
+			
+			4.当 threadA 提交 sessionA 对象关联的事务时, Hibernate 会自动flush sessionA 对象的缓存, 然后提交事务, 
+			关闭 sessionA 对象. 当 threadA 撤销 sessionA 对象关联的事务时, 也会自动关闭 sessionA 对象
+		
+			5.若 threadA 再次调用 SessionFactory 对象的 getCurrentSession() 方法时, 
+			该方法会又创建一个新的 Session(sessionB) 对象, 把该对象与 threadA 绑定, 并将 sessionB 返回 
+			
+			
+		
+		public class DepartmentDao {
+		
+			public void save(Department dept){
+				//内部获取 Session 对象
+				//获取和当前线程绑定的 Session 对象
+				//1. 不需要从外部传入 Session 对象
+				//2. 多个 DAO 方法也可以使用一个事务!
+				Session session = HibernateUtils.getInstance().getSession();
+				System.out.println(session.hashCode());
+				
+				session.save(dept);
+			}
+			
+			/**
+			 * 若需要传入一个 Session 对象, 则意味着上一层(Service)需要获取到 Session 对象.
+			 * 这说明上一层需要和 Hibernate 的 API 紧密耦合. 所以不推荐使用此种方式. 
+			 */
+			public void save(Session session, Department dept){
+				session.save(dept);
+			}
+			
+		}
+			
+		
+		
+		public class HibernateUtils {
+			
+			private HibernateUtils(){}
+			
+			private static HibernateUtils instance = new HibernateUtils();
+			
+			public static HibernateUtils getInstance() {
+				return instance;
+			}
+		
+			private SessionFactory sessionFactory;
+		
+			public SessionFactory getSessionFactory() {
+				if (sessionFactory == null) {
+					Configuration configuration = new Configuration().configure();
+					ServiceRegistry serviceRegistry = new ServiceRegistryBuilder()
+							.applySettings(configuration.getProperties())
+							.buildServiceRegistry();
+					sessionFactory = configuration.buildSessionFactory(serviceRegistry);
+				}
+				return sessionFactory;
+			}
+			
+			public Session getSession(){
+				return getSessionFactory().getCurrentSession();
+			}
+		
+		}
+		
+		@Test
+	public void testManageSession(){
+		
+		//获取 Session
+		//开启事务
+		Session session = HibernateUtils.getInstance().getSession();
+		System.out.println("-->" + session.hashCode());
+		Transaction transaction = session.beginTransaction();
+		
+		DepartmentDao departmentDao = new DepartmentDao();
+		
+		Department dept = new Department();
+		dept.setName("ATGUIGU");
+		
+		departmentDao.save(dept);
+		departmentDao.save(dept);
+		departmentDao.save(dept);
+		
+		//若 Session 是由 thread 来管理的, 则在提交或回滚事务时, 已经关闭 Session 了. 
+		transaction.commit();
+		System.out.println(session.isOpen()); 
+	}
+	
+	批量操作推荐使用jdbc原生的api
+			
+	@Test
+	public void testBatch(){
+		session.doWork(new Work() {			
+			@Override
+			public void execute(Connection connection) throws SQLException {
+				//通过 JDBC 原生的 API 进行操作, 效率最高, 速度最快!
+			}
+		});
+	}
+	

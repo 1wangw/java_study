@@ -1,0 +1,285 @@
+jpa 笔记
+
+	在META-INF/persistence.xml
+	
+		<?xml version="1.0" encoding="UTF-8"?>
+<persistence xmlns="http://java.sun.com/xml/ns/persistence" version="2.0">
+
+
+    <!--
+        1.创建persistence.xml, 在这个文件中配置持久化单元
+            -需要指定跟那个数据库进行交互
+            -需要指定jpa使用哪个持久化的框架以及配置该框架的基本属性
+
+        2.创建实体类,使用annotation来描述实体类跟数据库表之间的映射关系
+
+        3.使用JPA API完成数据库增加 删除 修改和查询操作
+            1.创建EntityManagerFactory(对应Hibernate中的SessionFactroy)
+            2.创建EntityManager(对应Hibernate中的Session)
+
+
+    -->
+
+    <persistence-unit name="jap-1" transaction-type="RESOURCE_LOCAL">
+
+        <!--配置使用哪个orm产品来实现jpa
+            1.实际上配置的是javax.persistence.spi.PersistenceProvider这个接口的实现类
+            2.若jpa项目中只有一个jpa的实现产品则也可以不配置该节点
+        -->
+        <provider>org.hibernate.ejb.HibernatePersistence</provider>
+
+
+        <!--添加持久化类 -->
+        <class>com.atugui.jpa.helloworld.Customer</class>
+
+
+        <properties>
+            <!--数据连接参数-->
+            <property name="javax.persistence.jdbc.driver" value="com.mysql.jdbc.Driver"></property>
+            <property name="javax.persistence.jdbc.url" value="jdbc:mysql://localhost:3306/test"></property>
+            <property name="ajavax.persistence.jdbc.user" value="root"></property>
+            <property name="javax.persistence.jdbc.password" value="123456"></property>
+            <!--配置 JPA 实现产品的基本属性 ，配置hibernate的基本属性-->
+                <!--生成数据表的策略-->
+            <property name="hibernate.format_sql" value="true"/>
+            <property name="hibernate.show_sql" value="true"/>
+            <property name="hibernate.hbm2ddl.auto" value="update"/>
+            <property name="hibernate.dialect" value="org.hibernate.dialect.MySQL5InnoDBDialect"></property>
+        </properties>
+        
+        
+
+    </persistence-unit>
+
+</persistence>
+
+
+**********************************************************************************************
+
+
+package com.atugui.jpa.helloworld;
+
+
+import javax.persistence.*;
+import java.util.Date;
+
+/*
+* 映射表名的
+* */
+@Table(name = "JPA_CUSTOMERS")
+
+/**
+ * @Entity 表明这个类是一个持久化类  如果没有table注解的话表名和类名相同
+ */
+@Entity
+public class Customer {
+
+    private Integer id;
+    private  String lastName;
+    private String email;
+    private  Integer age;
+    private Date createTime;
+    private Date birth;
+
+    @Temporal(TemporalType.TIMESTAMP)
+    public Date getCreateTime() {
+        return createTime;
+    }
+
+
+    public void setCreateTime(Date createTime) {
+        this.createTime = createTime;
+    }
+
+    @Temporal(TemporalType.DATE)
+    public Date getBirth() {
+        return birth;
+    }
+
+    public void setBirth(Date birth) {
+        this.birth = birth;
+    }
+
+    /*如果列名和字段名字一样不用写
+    *
+    *
+    *
+    * */
+    @Column(name = "id")
+
+    /*
+    * 映射主键的  通常加在get方法的
+    * */
+    @Id
+    /*
+     生成主键的策略
+        默认值AUTO JPA 自动选择合适的策略,默认选项
+         TABLE,通过表产生主键,框架借由表模拟产生主键,是用该策略可以使应用更易于数据库的移植
+        SEQUENCE, 通过序列产生主键, 通过    @SequenceGenerator 注解指定序列名,mysql不支持这种方式
+        IDENTITY, 采用数据库自增的方式来自增主键字段,Oracle不支持这种方式
+    * */
+
+    /*
+    *  @Basic  没加注解相当于加了这个注解
+    *           会将列名自动映射为实体类属性名
+    *           如果get方法上没有加注解默认就相当于加了这个注解
+    * */
+   // @GeneratedValue(strategy = GenerationType.AUTO )
+    @GeneratedValue(strategy = GenerationType.TABLE ,generator = "id_generators")
+    @TableGenerator(name = "id_generators" ,  table = "jpa_id_generators" , pkColumnName = "pk_name"
+    ,pkColumnValue = "CUSTOMER_ID" ,valueColumnName = "pk_value" ,allocationSize = 100)
+    public Integer getId() {
+
+        return id;
+    }
+
+    public void setId(Integer id) {
+        this.id = id;
+    }
+    /*
+    * 可以通过此注解来映射数据表中的列名  并且可以指定长度
+    *
+    * */
+    @Column(name = "last_name")
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
+    }
+
+    @Column(name = "email")
+    public String getEmail() {
+        return email;
+    }
+
+    public void setEmail(String email) {
+        this.email = email;
+    }
+
+    @Column(name = "age")
+    public Integer getAge() {
+        return age;
+    }
+
+    public void setAge(Integer age) {
+        this.age = age;
+    }
+
+    /*
+    * 这是一个工具方法不需要映射为数据表的一列
+    *
+    *   @Transient
+    *   表示该属性并非一个到数据库表字段的映射,ORM框架将忽略该属性
+    *
+    *   如果一个属性并非数据库表字段的映射,就务必将其标注为@Transient,
+    *   否则Orm框架默认其注解为@Basic
+    *
+    * */
+    @Transient
+    public String getInfo() {
+
+        return "lastName:" + lastName + " email: " +email ;
+    }
+}
+
+***********************************************************************************************
+
+package com.atugui.jpa.helloworld;
+
+import javax.persistence.EntityManager;
+import javax.persistence.EntityManagerFactory;
+import javax.persistence.EntityTransaction;
+import javax.persistence.Persistence;
+import java.util.Date;
+
+public class Main {
+
+
+    public static void main(String[] args) {
+
+        /**
+         * 1.创建EntityManagerFactory
+         */
+        String persistenceUnitName = "jap-1";
+        EntityManagerFactory entityManagerFactory =
+                Persistence.createEntityManagerFactory(persistenceUnitName);
+
+        /*
+        * 2.创建EntityManager
+        * */
+
+       EntityManager entityManager =  entityManagerFactory.createEntityManager();
+
+        /*
+        * 3.开启事务
+        * */
+
+       EntityTransaction transaction = entityManager.getTransaction();
+
+        transaction.begin();
+
+        /*
+        * 4.进行持久化操作
+        * */
+
+        Customer customer = new Customer();
+        customer.setEmail("853522194@qq.com");
+        customer.setLastName("jialong");
+        customer.setAge(22);
+        customer.setCreateTime(new Date());
+        customer.setBirth( new Date());
+
+
+
+        entityManager.persist(customer);
+        customer.setEmail("xxx");
+        /*
+        * 5.提交事务
+        * */
+
+        transaction.commit();
+
+        /*
+        * 6.关闭EntityManager
+        * */
+
+        entityManager.close();
+
+        /*
+        * 7.关闭EntityManageFactroy
+        * */
+
+        entityManagerFactory.close();
+
+    }
+}
+
+***********************************************************************************************************
+jpa  
+	一对多单向映射
+	多对一单向映射
+	一对多双向映射
+	
+	一对一双向映射
+	多对多双向映射
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+	
+	

@@ -1,0 +1,162 @@
+spring 整合struts2
+	在通用的 web 应用中访问 Spring
+	
+	通过注册 Servlet 监听器 ContextLoaderListener, Web 应用程序可以加载 Spring 的ApplicationContext 对象.
+	这个监听器会将加载好的ApplicationContext 对象保存到 Web 应用程序的 ServletContext 中.
+	 随后, Servlet 或可以访问 ServletContext 的任意对象就能通过一个辅助方法来访问 Spring 的应用程序上下文了.
+	
+	1.首先应该考虑的是spring如何在web应用中使用?
+		1).需要额外加入的jar包:spring-web spring-webmvc
+		2).spring的配置文件,没什么不同
+		3).如何创建ioc容器?
+			1.非web应用在main方法中直接创建
+			2.web应用应该在web应用被服务器加载的时候就创建ioc容器:
+				在ServletContextListenner#contextInitialized(ServletContextEvent sce)
+				中创建IOC容器是最合适的
+				
+			3.在web应用的其他组件如何访问ioc容器?
+				在ServletContextListenner#contextInitialized(ServletContextEvent sce)创建
+				IOC容器后可以把其放在ServletContext(即application域)的一个属性中
+				 @Override
+			    public void contextInitialized(ServletContextEvent sce) {
+			    	
+			    	//1.获取Spring 配置文件的名称;
+			    	
+			    	ServletContext servletContext = sce.getServletContext();
+			    	String contextLocation = servletContext.getInitParameter("configLocation");
+			    	
+			    	//2.创建IOC容器
+			    	ApplicationContext ctx = new ClassPathXmlApplicationContext( contextLocation );
+			    		
+			    	//3.把IOC容器放在ServletContext的一个属性中
+			    	
+			    	servletContext.setAttribute("ApplicationContext", ctx );
+			    	
+			    	
+			    }
+			
+			4.实际上spring配置文件的名字和位置应该也是可以配置的！
+				将其配置到当前web应用的初始化参数中
+				  <context-param>
+					    <param-name>configLocation</param-name>
+					    <param-value>classpath:applicationContext.xml</param-value>
+				  </context-param>
+				  
+				  
+			使用Spring自带的上面是模拟的：
+			
+						<!-- 配置Spring配置文件的名称和位置 -->
+			<context-param>
+				<param-name>contextConfigLocation</param-name>
+				<param-value>classpath:applicationContext.xml</param-value>
+			</context-param>
+		
+			<!--启动IOC容器的ServletContextListener -->
+			<listener>
+				<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+			</listener>
+		  
+		  
+		  <servlet>
+		    <description></description>
+		    <display-name>TestServlet</display-name>
+		    <servlet-name>TestServlet</servlet-name>
+		    <servlet-class>com.atguigu.spring.struts2.servlets.TestServlet</servlet-class>
+		  </servlet>
+		  <servlet-mapping>
+		    <servlet-name>TestServlet</servlet-name>
+		    <url-pattern>/TestServlet</url-pattern>
+		  </servlet-mapping>
+  
+			 */
+			protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+				
+				//1.从application域对象中获取IOC容器的引用
+				
+				ApplicationContext ctx = WebApplicationContextUtils.getWebApplicationContext(request.getServletContext());
+				
+				Person person = ctx.getBean(Person.class);
+				
+				person.hello();
+				//2从ioc容器获取需要的bean;
+				
+				//使用bean
+				
+			}
+			
+		4.在web环境下使用spring
+			1.需要额外加入的jar包:spring-web spring-webmvc
+			2.spring的配置文件,没什么不同 
+			3.需要在web.xml文件中需要加入如下配置 Alt + / 自动提示
+			<context-param>
+				<param-name>contextConfigLocation</param-name>
+				<param-value>classpath:applicationContext.xml</param-value>
+			</context-param>
+		
+			<!--启动IOC容器的ServletContextListener -->
+			<listener>
+				<listener-class>org.springframework.web.context.ContextLoaderListener</listener-class>
+			</listener>
+			
+			4.获取IOC容器WebApplicationContextUtils
+			
+			
+	2.spring如何整合struts2?
+			
+		1).整合目标是什么?使IOC容器来管理struts2的action
+		
+		2).到底如何进行整合?
+			 1.正常加入Struts2(在web.xml加入StrutsPrepareAndExecuteFilter 及struts.xml )
+			 
+			 2.在spring的IOC容器中配置struts2的action
+			 
+			 	<?xml version="1.0" encoding="UTF-8"?>
+				<beans xmlns="http://www.springframework.org/schema/beans"
+					xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+					xmlns:aop="http://www.springframework.org/schema/aop"
+					xsi:schemaLocation="http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans.xsd
+						http://www.springframework.org/schema/aop http://www.springframework.org/schema/aop/spring-aop-4.3.xsd">
+				
+					<!-- 额外需要注意的:在配置ioc容器中配置struts2的action时,需要配置scope属性其值必须为prototype -->
+					<bean id="person" class="com.atguigu.spring.struts2.actions.PersonAction"  scope="prototype" >
+						<property name="personServlce" ref="personServlce"></property>
+					</bean>
+					
+					<bean id="personServlce" class="com.atguigu.spring.struts2.service.PersonServlce">
+					
+					</bean>
+				
+				</beans>
+				
+			3.配置struts2的配置文件
+			
+				<?xml version="1.0" encoding="UTF-8"?>
+				<!DOCTYPE struts PUBLIC "-//Apache Software Foundation//DTD Struts Configuration 2.3//EN" "http://struts.apache.org/dtds/struts-2.3.dtd">
+				<struts>
+					
+					<package name="hello" extends="struts-default">
+							
+							<!-- 以前由struts2通过配置class属性自己创建action
+								现在需要用ioc容器中的由spring创建的action bean
+								
+								spring整合struts2时,在struts2中配置的Spring的Action的class需要指向
+								IOC容器中该bean的id
+							 -->
+							<action name="person-save"  class="personAction"> 
+								<result>/success.jsp</result>
+							</action>
+					</package>
+				</struts>
+			
+			另外还要加入一个jar包:
+			
+			 <!-- https://mvnrepository.com/artifact/org.apache.struts/struts2-spring-plugin -->
+				<dependency>
+				    <groupId>org.apache.struts</groupId>
+				    <artifactId>struts2-spring-plugin</artifactId>
+				    <version>2.5.16</version>
+				</dependency>
+		
+	3.整合原理：
+		通过添加struts2-spring-plugin 后,struts2会先从ioc容器中获取action的实例
+		否则再反射创建				

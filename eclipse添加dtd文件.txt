@@ -1,0 +1,14 @@
+1.xml dtd 联网的时候就就可以自动补全
+2.没有的话在 在下载的mybatis  maven包中 就能看到
+.org.apache.ibatis.builder.xml.mybatis-3-config.dtd
+.org.apache.ibatis.builder.xml.mybatis-3-mapper.dtd
+
+将这个两个文件解压出来:
+	引入:
+		1.首先将dtd的url地址复制处理
+			http://mybatis.org/dtd/mybatis-3-config.dtd
+		2.点击首选项
+		3.xml 点击add
+		4.key就是刚才的url地址
+		5.keytype 就是URI
+		6.在location中指定刚才解压的文件

@@ -1,0 +1,122 @@
+使用jersey上传图片到图片服务器
+
+
+
+  <dependencies>
+  		<dependency>
+			<groupId>com.sun.jersey</groupId>
+			<artifactId>jersey-client</artifactId>
+			<version>1.18</version>
+		</dependency>
+  
+
+
+2016年07月24日 20:33:09 akafra 阅读数：3208
+ 版权声明：转载请注明出处	https://blog.csdn.net/yy306525121/article/details/52016031
+实际项目中可能要用到单独的文件服务器， 这时候可以使用jersey上传文件的方法达到分离文件服务器和主服务器的目的
+
+1. 修改tomcat配置， 允许文件写操作
+使用Tomcat需要修改conf目录下的web.xml， 添加readonly参数为false
+ <servlet>
+        <servlet-name>default</servlet-name>
+        <servlet-class>org.apache.catalina.servlets.DefaultServlet</servlet-class>
+        <init-param>
+            <param-name>debug</param-name>
+            <param-value>0</param-value>
+        </init-param>
+        <init-param>
+            <param-name>readonly</param-name>
+            <param-value>false</param-value>
+        </init-param>
+        <init-param>
+            <param-name>listings</param-name>
+            <param-value>true</param-value>
+        </init-param>
+        <load-on-startup>1</load-on-startup>
+</servlet>
+
+2. 新建文件服务器web工程
+新建文件服务器的web工程， 其他默认， 在webapp下新建upload目录用于存储上传后的照片， 放置一个任意文件， 放置打包的时候空文件夹被忽略掉
+
+
+
+
+
+3. 新建项目web工程
+jersey用到的jar
+<dependency>
+      <groupId>com.sun.jersey</groupId>
+      <artifactId>jersey-core</artifactId>
+      <version>1.19</version>
+    </dependency>
+    <dependency>
+      <groupId>com.sun.jersey</groupId>
+      <artifactId>jersey-client</artifactId>
+      <version>1.19</version>
+</dependency>
+
+在springmvc中配置CommonsMultipartResolver支持文件上传
+<bean id="multipartResolver" class="org.springframework.web.multipart.commons.CommonsMultipartResolver">
+        <property name="maxUploadSize" value="10240000"/>
+</bean>
+
+编写Controller进行文件上传
+package cn.codeyang.controller;
+ 
+import cn.codeyang.util.PropUtils;
+import com.sun.jersey.api.client.Client;
+import com.sun.jersey.api.client.WebResource;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.multipart.MultipartHttpServletRequest;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.util.Iterator;
+ 
+/**
+ * 使用Jersey加springmvc上传文件到文件服务器
+ */
+@Controller
+@RequestMapping("/upload")
+public class UploadController {
+ 
+    @RequestMapping(value = "/toUpload", method = RequestMethod.GET)
+    public String tuUpload(){
+        return "upload";
+    }
+ 
+    @RequestMapping(value = "upload", method = RequestMethod.POST)
+    public void upload(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        MultipartHttpServletRequest req = (MultipartHttpServletRequest) request;
+        Iterator<String> iter = req.getFileNames();
+        if (iter.hasNext()){
+            String fileName = iter.next();
+            MultipartFile file = req.getFile(fileName);
+            fileName = file.getOriginalFilename();
+            byte[] byteArr = file.getBytes();
+            Client client = Client.create();
+            WebResource resource = client.resource(PropUtils.readProp("file_path") + "/upload/" + fileName);
+            resource.put(byteArr);
+        }
+    }
+}
+
+
+编写前端jsp代码
+<%@ page contentType="text/html;charset=UTF-8" language="java" %>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ page isELIgnored="false" %>
+<html>
+<head>
+    <title></title>
+</head>
+<body>
+<form action="<c:url value="/upload/upload"/> " method="post" enctype="multipart/form-data">
+    <input type="file" name="f"/>
+    <input type="submit" value="Submit">
+</form>
+</body>
+</html>

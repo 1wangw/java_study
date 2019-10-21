@@ -1,0 +1,214 @@
+Spring整合 Hibernate
+	
+	1.整合什么?
+		1.有spring IOC容器生成hibernate的SessionFactory;
+		2.让hibernate使用spring的声明式的事务
+		
+	2.整合步骤:
+		1.先加入hibernate
+			1.加入jar包
+			2.添加hibernate 的配置文件.hibernate.cfg.xml
+			<session-factory>
+    	
+		    	<!-- 配置hibernate的基本属性
+		    	1.数据源需要配置到IOC容器中,所以此处不需要再配置数据源
+		    	2.关联的.hbm.xml也在IOC容器配置SessionFactory实例时再进行配置
+		    	3.配置hibernate的基本属性:方言 sql显示 及格式化,生成数据表的策略以及
+		    	二级缓存等
+		    	 -->
+		    	
+		    	<!-- 
+		        <property name="hibernate.connection.driver_class">com.mysql.jdbc.Driver</property>
+		        <property name="hibernate.connection.password">123456</property>
+		        <property name="hibernate.connection.url">jdbc:mysql://localhost:3306/test</property>
+		        <property name="hibernate.connection.username">root</property>
+		        -->
+		        <property name="hibernate.dialect">org.hibernate.dialect.MySQL5InnoDBDialect</property>
+		    	<property name="hibernate.format_sql">true</property>
+		    	<property name="hibernate.show_sql">true</property>
+		    	<property name="hibernate.hbm2ddl.auto">create</property>
+		    	
+		    	<!-- 配置hibernate二级缓存相关属性 -->
+		    </session-factory>
+		    
+		    3.创建实体类并创建对应的映射文件.hbm.xml文件
+		    
+		    
+		2.加入spring
+			1.加入jar包
+				  		
+  
+				<!-- https://mvnrepository.com/artifact/org.springframework/spring-orm -->
+				<dependency>
+				    <groupId>org.springframework</groupId>
+				    <artifactId>spring-orm</artifactId>
+				    <version>5.1.3.RELEASE</version>
+				</dependency>
+			
+			2.加入spring的配置文件
+				配置
+				<context:property-placeholder location="classpath:db.properties"/>
+			
+			<!-- 配置数据源 -->
+			
+			<bean id="dataSource" class="com.mchange.v2.c3p0.ComboPooledDataSource">
+				<property name="user" value="${jdbc.user}"></property>
+				<property name="password" value="${jdbc.password}"></property>
+				<property name="driverClass" value="${jdbc.dirver}"></property>
+				<property name="jdbcUrl" value="${jdbc.url}"></property>
+				<property name="initialPoolSize" value="${jdbc.initialPoolSize}"></property>
+				<property name="maxPoolSize" value="${jdbc.maxPoolSize}"></property>
+			</bean>
+			
+			<!-- 配置hibernate 的hibernate的sessionfactory实例 -->
+			<!-- 通过spring 提供的LocalSessionFactoryBean进行配置 -->
+			
+			<bean id="sessionFactory"  class="org.springframework.orm.hibernate5.LocalSessionFactoryBean">
+				<!-- 配置数据源属性 -->
+				<property name="dataSource" ref="dataSource"></property>
+				<!-- 配置hibernate配置文件路径 -->
+				<property name="configLocation" value="classpath:hibernate.cfg.xml"></property>
+				<!-- 配置映射文件的路径及名称 -->
+				<property name="mappingLocations" value="classpath:mapper/*.hbm.xml"></property>
+			</bean>
+			
+			<!-- 配置 spring的声明式事务 -->
+			
+			<bean id="transactionManager" class="org.springframework.orm.hibernate5.HibernateTransactionManager">
+				<property name="sessionFactory" ref="sessionFactory"></property>
+			</bean>
+		
+			<tx:advice transaction-manager="transactionManager" id="txAdvice">
+				<tx:attributes>
+					<tx:method name="get*"  read-only="true"/>
+					<tx:method name="*" />
+				</tx:attributes>
+			</tx:advice>
+			
+			<aop:config>
+				<aop:pointcut expression="execution( * com.atguigu.spring.hibernate.service.*.*(..) )" id="pointCut"/>
+				<aop:advisor advice-ref="txAdvice" pointcut-ref="pointCut"/>
+			</aop:config>
+				
+		3.在进行整合
+		
+		
+实际编写代码:
+		@Repository
+		public class BookShopDaoImpl  extends HibernateDaoSupport  implements BookShopDao {
+		
+			@Autowired
+			private SessionFactory sessionFactory;
+			
+			/**
+			 * 不推荐使用这个 HibernateDaoSupport   HibernateTemplate 
+			 * 因为这样会导致Dao和Spring的api进行耦合 可移植性变差
+			 */
+			private HibernateTemplate hibernateTemplate;
+			/**
+			 * 获取当前线程相关的session 
+			 * @return
+			 */
+			private Session getSession() {
+				
+				return sessionFactory.getCurrentSession();
+			}
+			
+			
+			public BookShopDaoImpl() {
+				
+				
+			}
+		
+			@Override
+			public int findBookPriceByIsbn(String isbn) {
+				
+				//验证书的库存是否充足
+				
+				
+				String hql = "select b.price from Book b where b.isbn=?";
+				Query query = sessionFactory.getCurrentSession().createQuery(hql);
+				
+				return (Integer)query.setParameter(0, isbn).uniqueResult();
+			}
+		
+			@Override
+			public void updateBookStock(String isbn) {
+		
+				String hql1 = "select b.stock from Book b  where b.isbn=?";
+				Query query1 = sessionFactory.getCurrentSession().createQuery(hql1).setParameter(0, isbn);
+				
+				int stock = (int) query1.uniqueResult();
+				
+				if ( stock < 1 ) {
+					
+					throw new BookStockException("库存不足");
+				}
+				
+				String hql = "upate Book b set b.stock=b.stock- 1 where b.isbn=?";
+				Query query = sessionFactory.getCurrentSession().createQuery(hql).setParameter(0, isbn);
+				
+				query.executeUpdate();
+			}
+		
+			@Override
+			public void updateUserAccount(String username, int price) {
+		
+				
+				String hql1 = "select a.balance from Account a  where a.username=?";
+				Query query1 = sessionFactory.getCurrentSession().createQuery(hql1).setParameter(0, username);
+				
+				int balance = (int) query1.uniqueResult();
+				
+				if ( balance < price ) {
+					
+					throw new UserAccountException("余额不足");
+				}
+				
+				String hql = "upate Account a set a.balance=a.balance- ?  where a.username=?";
+				Query query = sessionFactory.getCurrentSession().createQuery(hql).setParameter(0, price)
+						.setParameter(1, username);
+				
+				query.executeUpdate();
+				
+			}
+		
+		}
+		
+		
+		spring hibernate事务流程:
+		1.在事务方法开始之前
+			1.获取session
+			2.把session和当前线程绑定.这样就可以在dao中使用sessionFactory的getCurrentSession的方法来获取session
+			3.开启事务
+			
+			
+		2.若方法正常结束,没有出现异常则:
+			1.提交事务
+			2.使和当前线程绑定的session解除绑定
+			3.关闭session
+		
+		3.若方法出现异常:
+			1.回滚事务
+			2.使和当前线程绑定的session解除绑定
+			3.关闭session
+			
+			
+	取代原生的hibernate 的配置文件:
+		
+		<bean id="sessionFactory"  class="org.springframework.orm.hibernate5.LocalSessionFactoryBean">
+		<!-- 配置数据源属性 -->
+		<property name="dataSource" ref="dataSource"></property>
+		<!-- 配置hibernate配置文件路径 -->
+		<!--<property name="configLocation" value="classpath:hibernate.cfg.xml"></property>
+		  --> 
+		 <!-- 使用hibernateProperties 属性来配置hibernate原生的属性	 -->
+		  <property name="hibernateProperties">
+		  	<props>
+		  		<prop key="hibernate.format_sql">true</prop>
+		  	</props>
+		  
+		  </property>
+		<!-- 配置映射文件的路径及名称 -->
+		<property name="mappingLocations" value="classpath:mapper/*.hbm.xml"></property>
+	</bean>
