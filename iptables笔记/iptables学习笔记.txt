@@ -1,0 +1,469 @@
+
+http://www.zsythink.net/archives/category/%E8%BF%90%E7%BB%B4%E7%9B%B8%E5%85%B3/iptables/ 
+
+iptables 学习
+
+PREROUTING   raw mangle nat
+INPUT 		 mangle filter 
+FORWARD      mangle filter 
+OUTPUT		 raw mangle nat filter
+POSTROUTING  mangle nat
+
+五个链  
+  数据包顺序
+  
+  进入本主机的数据包:  PREROUTING  INPUT
+  本机转发的数据包:PREROUTING FORWARD POSTROUTING
+  本机发出的数据包:OUTPUT POSTROUTING
+	
+
+		
+四张表的增删该查
+	
+	查:-L  加选项vn v表示显示更多信息  n表示不进行ip到域名的解析
+	增:-I -A
+	改:-R
+	删:-D
+	
+	改变链的默认策略:-P 
+	
+基本条件	
+		-s  表示源地址 
+		-d  表示目标地址		
+		基本条件之间默认是与的关系
+			
+	iptables -t filter -I INPUT -s 192.168.1.163 -j ACCEPT
+	
+	-i  指定数据包进入的网卡 
+	-o  指定数据包流出的网卡
+	
+扩展模块匹配条件
+	
+	-m tcp  --dport  
+			--sport  10:30
+			
+	-m udp  --sport  
+			--dport  10
+			
+	-m multiport  --sports 10,20:30  
+				  --dports 10,20:30
+	
+	-m iprange --src-range 192.168.1.25-192.168.1.30   
+				--dst-range 192.168.1.25-192.168.1.30 
+	
+	-m string --algo bm --string "hello"
+	
+	-m time --timestart  09:00:00 --timestop 19:00:00 
+		    --timestart 09:00:00 --timestop 19:00:00 
+			--weekdays 6,7
+			--mouthdays 22,23
+			-datestart 2017-12-24 --datestop 2017-12-27
+
+	-m connlimt --connlimit-above 2 			
+				--connlimit-above 20 --connlimit-mask 24
+				
+	-m limit  --limit-burst 3   --limit 10/second
+							   --limit 10/minute
+							   --limit 10/hour
+							   --limit 10/day
+							   
+	-m  tcp-flags
+			iptables -t filter -I INPUT -p tcp -m tcp --dport 22 --tcp-flags SYN,ACK,FIN,RST,URG,PSH SYN -j REJECT
+			iptables -t filter -I OUTPUT -p tcp -m tcp --sport 22 --tcp-flags SYN,ACK,FIN,RST,URG,PSH SYN,ACK -j REJECT
+			iptables -t filter -I INPUT -p tcp -m tcp --dport 22 --tcp-flags ALL SYN -j REJECT
+			iptables -t filter -I OUTPUT -p tcp -m tcp --sport 22 --tcp-flags ALL SYN,ACK -j REJECT
+			
+			--syn 
+				用于匹配新连接的请求报文,相当于使用了 --tcp-flags SYN,RST,ACK,FIN SYN
+			iptables -t filter -I INPUT -p tcp -m tcp --dport 22 --syn -j REJECT	
+		
+	-m icmp iptables -t filter -I INPUT -p icmp -m icmp --icmp-type 8/0 -j REJECT  //别人不能Ping自己
+				iptables -t filter -I INPUT -p icmp --icmp-type 8 -j REJECT
+				
+			iptables -t filter -I INPUT -p icmp -m icmp --icmp-type 0/0 -j REJECT  //我们不能ping别人
+			iptables -t filter -I OUTPUT -p icmp --icmp-type 0 -j REJECT
+			
+			使用icmp 的报文描述去匹配
+			iptables -t filter -I INPUT -p icmp --icmp-type "echo-request" -j REJECT
+			
+	state 扩展模块匹配条件
+
+		state的五种状态
+		
+		NEW    连接中的第一个包,状态就是NEW,我们可以理解为新链接的第一个包的状态为NEW 
+		ESTABLISHED	我们可以把NEW状态包后面的包状态理解为ESTABLISHED，表示连接已经建立
+		RELATED	从字面上翻译是关系,但这样仍然不容理解
+				比如FTP服务，FTP服务端会建立两个进程，一个命令进程，一个数据进程
+				命令进程负责服务端与客户端之间的命令传输
+			   （我们可以把这个传输过程理解成state中所谓的一个"连接"，暂称为"命令连接"）。
+			    数据进程负责服务端与客户端之间的数据传输（我们把这个传输过程暂称为"数据连接"）
+				但是具体传输那些数据是由命令去控制的.所以数据连接中的报文和命令连接中的报文时有关系的
+				(注:如果想要对ftp进行连接追踪,需要单独加载内核模块nf_conntrack_ftp,如果想自动加载可以配置
+				/etc/sysconfig/iptables-config文件
+				
+		INVALID  如果一个包没有办法去识别或者没有任何状态,那这个包的状态就是INVALID，我们可以主动屏蔽 INVALID
+		UNTRACKED 报文状态为untracked时表示报文未被追踪,当报文的状态为untacked时通常表示无法找到相关连接
+		
+		
+		放行响应包
+		
+		iptables -t filter -I INPUT -m state --state RELATED,ESTABLISHED -j ACCEPT
+		
+	
+		
+	
+ 白名单机制:
+	
+	所以，当链的默认策略为ACCEPT时，链中的规则对应的动作应该为DROP或者REJECT，
+	表示只有匹配到规则的报文才会被拒绝，没有被规则匹配到的报文都会被默认接受，这就是"黑名单"机制。
+
+ 
+
+	同理，当链的默认策略为DROP时，链中的规则对应的动作应该为ACCEPT，表示只有匹配到规则的报文才会被放行，
+	没有被规则匹配到的报文都会被默认拒绝，这就是"白名单"机制。
+	
+	如果使用白名单机制，我们就要把所有人都当做坏人，只放行好人。
+
+	如果使用黑名单机制，我们就要把所有人都当成好人，只拒绝坏人。
+
+	白名单机制似乎更加安全一些，黑名单机制似乎更加灵活一些。
+
+	 
+
+	那么，我们就来做一个简单的白名单吧，也就是说，只放行被规则匹配到的报文，其他报文一律拒绝，那么，我们先来配置规则。
+
+	假设，我想要放行ssh远程连接相关的报文，也想要放行web服务相关的报文，那么，我们在INPUT链中添加如下规则。
+
+	iptables详解（9）：iptables的黑白名单机制
+	如上图所示，我们已经放行了特定的报文，只有上述两条规则匹配到的报文才会被放行，现在，我们只要将INPUT链的默认策略改为DROP，即可实现白名单机制。
+
+	示例如下。
+	
+	如果此时，我不小心执行了"iptables -F"操作，根据我们之前学到的知识去判断，
+	我们还能够通过ssh工具远程到服务器上吗？
+
+	我想你已经判断出了正确答案，没错，按照上图中的情况，如果此时执行"iptables -F"操作，
+	filter表中的所有链中的所有规则都会被清空，而INPUT链的默认策略为DROP，所以所有报文都会被拒绝，
+	不止ssh远程请求会被拒绝，其他报文也会被拒绝，我们来实验一下。
+
+	iptables详解（9）：iptables的黑白名单机制
+	如上图所示，在当前ssh远程工具中执行"iptables -F"命令后，由于INPUT链中已经不存在任何规则，
+	所以，所有报文都被拒绝了，包括当前的ssh远程连接。
+	
+
+	iptables详解（9）：iptables的黑白名单机制
+	上图中，我们已经将INPUT链的默认策略改为DROP，并且已经实现了所谓的白名单机制，即默认拒绝所有报文，只放行特定的报文
+ 
+	这就是默认策略设置为DROP的缺点，在对应的链中没有设置任何规则时，
+	这样使用默认策略为DROP是非常不明智的，因为管理员也会把自己拒之门外，
+	即使对应的链中存在放行规则，当我们不小心使用"iptables -F"清空规则时，
+	放行规则被删除，则所有数据包都无法进入，这个时候就相当于给管理员挖了个坑，所以，
+	我们如果想要使用"白名单"的机制，最好将链的默认策略保持为"ACCEPT"，
+	然后将"拒绝所有请求"这条规则放在链的尾部，将"放行规则"放在前面，这样做，既能实现"白名单"机制，
+	又能保证在规则被清空时，管理员还有机会连接到主机，示例如下
+		
+ 
+自定义链：
+		#示例：在filter表中创建IN_WEB自定义链
+		iptables -t filter -N IN_WEB
+		
+		#示例：在INPUT链中引用刚才创建的自定义链
+		iptables -t filter -I INPUT -p tcp --dport 80 -j IN_WEB	
+		
+		#示例：将IN_WEB自定义链重命名为WEB
+		iptables -E IN_WEB WEB
+		
+		#示例：删除引用计数为0并且不包含任何规则的WEB链  条件 不能引用 不能包含任何规则
+		iptables -X WEB
+		
+		
+网络防火墙：
+	
+	我们一起来回顾一下之前的知识，在第一篇介绍iptables的文章中，我们就描述过防火墙的概念，我们说过，防火墙从逻辑上讲，
+	可以分为主机防火墙与网络防火墙。
+
+	主机防火墙：针对于单个主机进行防护。
+
+	网络防火墙： 往往处于网络入口或边缘，针对于网络入口进行防护，服务于防火墙背后的本地局域网
+	
+	前文中，iptables都是作为"主机防火墙"的角色出现的，所以我们举例时，只用到了上图中的INPUT链与OUTPUT链，
+	因为拥有"过滤功能"的链只有3条，INPUT、OUTPUT、FORWARD，当报文发往本机时，如果想要过滤，
+	只能在INPUT链与OUTPUT链中实现，而此时，iptables的角色发生了转变，我们想要将iptables所在的主机打造成"网络防火墙"
+	，而刚才已经说过，网络防火墙的职责就是"过滤并转发"，要想"过滤"，只能在INPUT、OUTPUT、FORWARD三条链中实现，要想"转发"，
+	报文则只会经过FORWARD链（发往本机的报文才会经过INPUT链），
+	所以，综上所述，iptables的角色变为"网络防火墙"时，规则只能定义在FORWARD链中。
+
+
+	route add -net 10.31.0.0/16 gw 192.168.1.131
+	
+	
+	如果想要iptables作为网络防火墙，iptables所在主机开启核心转发功能，以便能够转发报文。
+	#使用如下命令查看当前主机是否已经开启了核心转发，0表示为开启，1表示已开启
+	cat /proc/sys/net/ipv4/ip_forward
+	#使用如下两种方法均可临时开启核心转发，立即生效，但是重启网络配置后会失效。
+	方法一：echo 1 > /proc/sys/net/ipv4/ip_forward
+	方法二：sysctl -w net.ipv4.ip_forward=1
+	#使用如下方法开启核心转发功能，重启网络服务后永久生效。
+	配置/etc/sysctl.conf文件（centos7中配置/usr/lib/sysctl.d/00-system.conf文件），在配置文件中将 net.ipv4.ip_forward设置为1
+	 
+	#由于iptables此时的角色为"网络防火墙"，所以需要在filter表中的FORWARD链中设置规则。
+	#可以使用"白名单机制"，先添加一条默认拒绝的规则，然后再为需要放行的报文设置规则。
+	#配置规则时需要考虑"方向问题"，针对请求报文与回应报文，考虑报文的源地址与目标地址，源端口与目标端口等。
+	#示例为允许网络内主机访问网络外主机的web服务与sshd服务。
+	iptables -A FORWARD -j REJECT
+	iptables -I FORWARD -s 10.1.0.0/16 -p tcp --dport 80 -j ACCEPT
+	iptables -I FORWARD -d 10.1.0.0/16 -p tcp --sport 80 -j ACCEPT
+	iptables -I FORWARD -s 10.1.0.0/16 -p tcp --dport 22 -j ACCEPT
+	iptables -I FORWARD -d 10.1.0.0/16 -p tcp --sport 22 -j ACCEPT
+	 
+	#可以使用state扩展模块，对上述规则进行优化，使用如下配置可以省略许多"回应报文放行规则"。
+	iptables -A FORWARD -j REJECT
+	iptables -I FORWARD -s 10.1.0.0/16 -p tcp --dport 80 -j ACCEPT
+	iptables -I FORWARD -s 10.1.0.0/16 -p tcp --dport 22 -j ACCEPT
+	iptables -I FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT
+				
+动作:
+	ACCPET
+	REJECT
+	DROP
+	SNAT
+	DNAT
+	LOG
+	REDIRECT
+	
+	
+	iptables动作总结之一
+		前文一直在介绍iptables的匹配条件，并没有对动作进行过总结，那么此处，我们就来总结一下iptables中的动作。
+
+		之前的举例中已经用到了一些常用动作，比如ACCEPT、DROP、REJECT等。
+
+		其实，"动作"与"匹配条件"一样，也有"基础"与"扩展"之分。
+
+		同样，使用扩展动作也需要借助扩展模块，但是，扩展动作可以直接使用，不用像使用"扩展匹配条件"那样指定特定的模块。
+
+		 
+
+		之前用到的ACCEPT与DROP都属于基础动作。
+
+		而REJECT则属于扩展动作。
+
+		 
+
+		之前举过很多例子，我们知道，使用-j可以指定动作，比如
+
+		-j ACCEPT
+
+		-j DROP
+
+		-j REJECT
+
+		 
+
+		其实，"动作"也有自己的选项，我们可以在使用动作时，设置对应的选项，此处以REJECT为例，展开与"动作"有关的话题。
+		
+	动作REJECT
+	
+		REJECT动作的常用选项为--reject-with
+
+	使用--reject-with选项，可以设置提示信息，当对方被拒绝时，会提示对方为什么被拒绝。
+
+	可用值如下
+
+	icmp-net-unreachable
+
+	icmp-host-unreachable
+
+	icmp-port-unreachable,
+
+	icmp-proto-unreachable
+
+	icmp-net-prohibited
+
+	icmp-host-pro-hibited
+
+	icmp-admin-prohibited
+
+	当不设置任何值时，默认值为icmp-port-unreachable。
+
+	 
+	我们来动手实践一下，在主机139上设置如下规则，如下图所示，当没有明确设置--reject-with的值时，默认提示信息为icmp-port-unreachable，即端口不可达之意。
+
+	此时在另一台主机上向主机139发起ping请求，如下图所示，提示目标端口不可达。
+
+	 
+	动作LOG			
+	
+	
+	在本博客中，前文并没有对LOG动作进行示例，此处我们来了解一下LOG动作。
+
+	使用LOG动作，可以将符合条件的报文的相关信息记录到日志中，但当前报文具体是被"接受"，还是被"拒绝"，都由后面的规则控制，换句话说，LOG动作只负责记录匹配到的报文的相关信息，不负责对报文的其他处理，如果想要对报文进行进一步的处理，可以在之后设置具体规则，进行进一步的处理。
+
+	示例如下，下例表示将发往22号端口的报文相关信息记录在日志中。
+
+	iptables详解（12）：iptables动作总结之一
+	如上图所示，上述规则表示所有发往22号端口的tcp报文都符合条件，所以都会被记录到日志中，查看/var/log/messages即可看到对应报文的相关信息，但是上述规则只是用于示例，因为上例中使用的匹配条件过于宽泛，所以匹配到的报文数量将会非常之多，记录到的信息也不利于分析，所以在使用LOG动作时，匹配条件应该尽量写的精确一些，匹配到的报文数量也会大幅度的减少，这样冗余的日志信息就会变少，同时日后分析日志时，日志中的信息可用程度更高。
+
+	注：请把刚才用于示例的规则删除。
+
+	 
+
+	从刚才的示例中我们已经了解到，LOG动作会将报文的相关信息记录在/var/log/message文件中，当然，我们也可以将相关信息记录在指定的文件中，以防止iptables的相关信息与其他日志信息相混淆，修改/etc/rsyslog.conf文件（或者/etc/syslog.conf），在rsyslog配置文件中添加如下配置即可。
+
+	#vim /etc/rsyslog.conf
+
+	kern.warning /var/log/iptables.log
+
+	加入上述配置后，报文的相关信息将会被记录到/var/log/iptables.log文件中。
+
+	完成上述配置后，重启rsyslog服务（或者syslogd）
+
+	#service rsyslog restart
+
+	服务重启后，配置即可生效，匹配到的报文的相关信息将被记录到指定的文件中。
+
+	 
+
+	LOG动作也有自己的选项，常用选项如下（先列出概念，后面有示例）
+
+	--log-level选项可以指定记录日志的日志级别，可用级别有emerg，alert，crit，error，warning，notice，info，debug。
+
+	--log-prefix选项可以给记录到的相关信息添加"标签"之类的信息，以便区分各种记录到的报文信息，方便在分析时进行过滤。
+
+	注：--log-prefix对应的值不能超过29个字符。
+
+	 
+
+	比如，我想要将主动连接22号端口的报文的相关信息都记录到日志中，并且把这类记录命名为"want-in-from-port-22",则可以使用如下命令
+
+	完成上述配置后，我在IP地址为192.168.1.98的客户端机上，尝试使用ssh工具连接上例中的主机，然后查看对应的日志文件（已经将日志文件设置为/var/log/iptables.log）
+
+
+	如上图所示，ssh连接操作的报文的相关信息已经被记录到了iptables.log日志文件中，
+	而且这条日志中包含"标签"：want-in-from-port-22，如果有很多日志记录，我们就能通过这个"标签"进行筛选了，
+	这样方便我们查看日志，同时，从上述记录中还能够得知报文的源IP与目标IP，源端口与目标端口等信息，
+	从上述日志我们能够看出，192.168.1.98这个IP想要在14点11分连接到192.168.1.139（当前主机的IP）的22号端口
+	，报文由eth4网卡进入，eth4网卡的MAC地址为00:0C:29:B7:F4:D1，客户端网卡的mac地址为F4-8E-38-82-B1-29。
+		
+	
+
+	SNAT、DNAT、MASQUERADE、REDIRECT
+
+ 
+
+	在认识它们之前，我们先来聊聊NAT，如果你对NAT的相关概念已经滚瓜烂熟，可以跳过如下场景描述。
+
+	 
+
+	NAT是Network Address Translation的缩写，译为"网络地址转换"，NAT说白了就是修改报文的IP地址，NAT功能通常会被集成到路由器、防火墙、或独立的NAT设备中。
+
+	为什么要修改报文的IP地址呢？我们来描述一些场景，即可知道为什么有这方面的需求了。
+	
+	内部网络的报文发送出去时，报文的源IP会被修改，也就是源地址转换：Source Network Address Translation，缩写为SNAT。
+	
+	外部网络的报文响应时，响应报文的目标IP会再次被修改，也就是目标地址转换：Destinationnetwork address translation，缩写为DNAT。
+
+	但是，上述"整个过程"被称为SNAT，因为"整个过程"的前半段使用了SNAT，如果上述"整个过程"的前半段使用了DNAT，则整个过程被称为DNAT，也就是说，整个过程被称为SNAT还是DNAT，取决于整个过程的前半段使用了SNAT还是DNAT。
+	
+	
+	SNAT不仅能够隐藏网内的主机IP，还能够共享公网IP，这在IPV4地址较为紧张的今天，是非常有用的。
+	其实，不管是SNAT还是DNAT，都起到了隐藏内部主机IP的作用。
+	
+	在文章开头的场景中，我们已经描述过，网络内部的主机可以借助SNAT隐藏自己的IP地址，同时还能够共享合法的公网IP，让局域网内的多台主机共享公网IP访问互联网。
+
+	而此时的主机B就扮演了拥有NAT功能的设备，我们使用iptables的SNAT动作达到刚才所说的目的。
+
+	连接到B主机，添加如下规则。
+
+
+	动作：SNAT
+
+	iptables -t nat -A POSTROUTING -s 10.1.0.0/16 -j SNAT --to-source 
+	
+	如上图所示，上图中的规则表示将来自于10.1.0.0/16网段的报文的源地址改为公司的公网IP地址。
+
+	"-t nat"表示操作nat表，我们之前一直在灌输一个概念，就是不同的表有不同的功能，filter表的功能是过滤，nat表的功能就是地址转换，所以我们需要在nat表中定义nat规则。
+
+	"-A POSTROUTING"表示将SNAT规则添加到POSTROUTING链的末尾，
+		
+	在centos7中，SNAT规则只能存在于POSTROUTING链与INPUT链中，在centos6中，SNAT规则只能存在于POSTROUTING链中。
+	
+	你可能会问，为什么SNAT规则必须定义在POSTROUTING链中，我们可以这样认为，POSTROUTING链是iptables中报文发出的最后一个"关卡"，我们应该在报文马上发出之前，修改报文的源地址，否则就再也没有机会修改报文的源地址了，在centos7中，SNAT规则也可以定义在INPUT链中，我们可以这样理解，发往本机的报文经过INPUT链以后报文就到达了本机，如果再不修改报文的源地址，就没有机会修改了。
+
+	"-s 10.1.0.0/16"表示报文来自于10.1.0.0/16网段，前文中一直在使用这个匹配条件，我想此处应该不用赘述了。
+
+	"-j SNAT"表示使用SNAT动作，对匹配到的报文进行处理，对匹配到的报文进行源地址转换。
+
+	"--to-source 192.168.1.146"表示将匹配到的报文的源IP修改为192.168.1.146，前文中，我们已经总结过，某些动作会有自己的选项，"--to-source"就是SNAT动作的常用选项，用于指定SNAT需要将报文的源IP修改为哪个IP地址。
+
+	
+	动作DNAT
+	
+	
+	-t nat -I PREROUTING"表示在nat表中的PREROUTING链中配置DNAT规则，DNAT规则只配置在PREROUTING链与OUTPUT链中。
+
+	"-d 192.168.1.146 -p tcp --dport 3389"表示报文的目标地址为公司的公网IP地址，目标端口为tcp的3389号端口，而我们知道，windows远程桌面使用的默认端口号就是3389，当外部主机访问公司公网IP的3389号端口时，报文则符合匹配条件。
+
+	"-j DNAT --to-destination 10.1.0.6:3389"表示将符合条件的报文进行DNAT，也就是目标地址转换，将符合条件的报文的目标地址与目标端口修改为10.1.0.6:3389，"--to-destination"就是动作DNAT的常用选项。
+
+	那么综上所述，上图中定义的规则的含义为，当外网主机访问公司公网IP的3389时，其报文的目标地址与端口将会被映射到10.1.0.6:3389上。
+	
+	好了，DNAT规则定义完了，现在能够直接使用外网主机访问私网中的服务了吗？
+
+	理论上只要完成上述DNAT配置规则即可，但是在测试时，只配置DNAT规则后，并不能正常DNAT，经过测试发现，将相应的SNAT规则同时配置后，即可正常DNAT，于是我们又配置了SNAT
+
+	示例如下。
+
+	iptables详解（13）：iptables动作总结之二
+
+	注：理论上只配置DNAT规则即可，但是如果在测试时无法正常DNAT，可以尝试配置对应的SNAT，此处按照配置SNAT的流程进行。
+
+	没错，与刚才定义SNAT时使用的规则完全一样。
+	
+	
+	动作MASQUERADE
+	
+	
+	
+	上文中，我们已经描述了SNAT，也就是源地址转换，那么我们现在来认识一个与SNAT类似的动作：MASQUERADE
+
+	当我们拨号网上时，每次分配的IP地址往往不同，不会长期分给我们一个固定的IP地址，如果这时，我们想要让内网主机共享公网IP上网，就会很麻烦，因为每次IP地址发生变化以后，我们都要重新配置SNAT规则，这样显示不是很人性化，我们通过MASQUERADE即可解决这个问题，MASQUERADE会动态的将源地址转换为可用的IP地址，其实与SNAT实现的功能完全一致，都是修改源地址，只不过SNAT需要指明将报文的源地址改为哪个IP，而MASQUERADE则不用指定明确的IP，会动态的将报文的源地址修改为指定网卡上可用的IP地址，示例如下：
+
+	iptables详解（13）：iptables动作总结之二
+
+	如上图所示，我们指定，通过外网网卡出去的报文在经过POSTROUTING链时，会自动将报文的源地址修改为外网网卡上可用的IP地址，这时，即使外网网卡中的公网IP地址发生了改变，也能够正常的、动态的将内部主机的报文的源IP映射为对应的公网IP。
+
+	可以把MASQUERADE理解为动态的、自动化的SNAT，如果没有动态SNAT的需求，没有必要使用MASQUERADE，因为SNAT更加高效。
+ 
+ 
+	动作REDIRECT
+	
+	使用REDIRECT动作可以在本机上进行端口映射
+
+	比如，将本机的80端口映射到本机的8080端口上
+
+	iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 8080
+
+	经过上述规则映射后，当别的机器访问本机的80端口时，报文会被重定向到本机的8080端口上。
+
+	REDIRECT规则只能定义在PREROUTING链或者OUTPUT链中
+	
+	配置SNAT，可以隐藏网内主机的IP地址，也可以共享公网IP，访问互联网，如果只是共享IP的话，只配置如下SNAT规则即可
+	
+	iptables -t nat -A POSTROUTING -s 10.1.0.0/16 -j SNAT --to-source 公网IP
+	
+	如果公网IP是动态获取的，不是固定的，则可以使用MASQUERADE进行动态的SNAT操作，如下命令表示将10.1网段的报文的源IP修改为eth0网卡中可用的地址
+	iptables -t nat -A POSTROUTING -s 10.1.0.0/16 -o eth0 -j MASQUERADE
+	
+	
+	配置DNAT，可以通过公网IP访问局域网内的服务。
+
+	注：理论上来说，只要配置DNAT规则，不需要对应的SNAT规则即可达到DNAT效果。
+
+	但是在测试DNAT时，对应SNAT规则也需要配置，才能正常DNAT，可以先尝试只配置DNAT规则，如果无法正常DNAT，再尝试添加对应的SNAT规则，SNAT规则配置一条即可，DNAT规则需要根据实际情况配置不同的DNAT规则。
+	iptables -t nat -I PREROUTING -d 公网IP -p tcp --dport 公网端口 -j DNAT --to-destination 私网IP:端口号
+	iptables -t nat -I PREROUTING -d 公网IP -p tcp --dport 8080 -j DNAT --to-destination 10.1.0.1:80
+	iptables -t nat -A POSTROUTING -s 10.1.0.0/16 -j SNAT --to-source 公网IP
+	
+	在本机进行目标端口映射时可以使用REDIRECT动作。
+	iptables -t nat -A PREROUTING -p tcp --dport 80 -j REDIRECT --to-ports 8080
+	
